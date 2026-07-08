@@ -1,0 +1,1 @@
+ALTER TABLE users ADD COLUMN IF NOT EXISTS school_id BIGINT REFERENCES schools(school_id) NULL;

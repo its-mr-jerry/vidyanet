@@ -1,0 +1,17 @@
+package com.kastack.vidyanet.database.entities
+
+import com.kastack.vidyanet.database.tables.RolesTable
+import org.jetbrains.exposed.dao.LongEntity
+import org.jetbrains.exposed.dao.LongEntityClass
+import org.jetbrains.exposed.dao.id.EntityID
+
+class RoleEntity(id: EntityID<Long>) : LongEntity(id) {
+    companion object : LongEntityClass<RoleEntity>(RolesTable)
+
+    var roleCode by RolesTable.roleCode
+    var roleName by RolesTable.roleName
+    var description by RolesTable.description
+    var isSystemRole by RolesTable.isSystemRole
+    var createdAt by RolesTable.createdAt
+    var updatedAt by RolesTable.updatedAt
+}

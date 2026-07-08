@@ -1,0 +1,63 @@
+CREATE TABLE IF NOT EXISTS schools (
+    school_id BIGSERIAL PRIMARY KEY,
+    school_code VARCHAR(20) UNIQUE NOT NULL,
+    school_name VARCHAR(150) NOT NULL,
+    school_type VARCHAR(30) NOT NULL,
+    phone VARCHAR(20) NOT NULL,
+    email VARCHAR(150),
+    website VARCHAR(255),
+    address VARCHAR(255) NOT NULL,
+    city VARCHAR(100) NOT NULL,
+    state VARCHAR(100) NOT NULL,
+    country VARCHAR(100) NOT NULL,
+    postal_code VARCHAR(20) NOT NULL,
+    logo_url VARCHAR(500),
+    status VARCHAR(30) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS roles (
+    role_id BIGSERIAL PRIMARY KEY,
+    role_code VARCHAR(50) UNIQUE NOT NULL,
+    role_name VARCHAR(100) NOT NULL,
+    description VARCHAR(255),
+    is_system_role BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS users (
+    user_id BIGSERIAL PRIMARY KEY,
+    phone VARCHAR(20) UNIQUE NOT NULL,
+    user_type VARCHAR(20) NOT NULL,
+    status VARCHAR(30) NOT NULL,
+    is_phone_verified BOOLEAN DEFAULT FALSE,
+    last_login_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP WITH TIME ZONE
+);
+
+CREATE TABLE IF NOT EXISTS otps (
+    phone VARCHAR(15) PRIMARY KEY,
+    otp VARCHAR(6) NOT NULL,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS user_role_assignments (
+    assignment_id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL REFERENCES users(user_id),
+    role_id BIGINT NOT NULL REFERENCES roles(role_id),
+    assigned_by BIGINT REFERENCES users(user_id),
+    assigned_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS system_settings (
+    id SERIAL PRIMARY KEY,
+    is_maintenance_mode BOOLEAN DEFAULT FALSE,
+    support_phone VARCHAR(20) DEFAULT '1234567890',
+    support_email VARCHAR(100) DEFAULT 'support@kastack.com',
+    app_version VARCHAR(10) DEFAULT '1.0.0',
+    allow_new_school_registration BOOLEAN DEFAULT TRUE
+);
