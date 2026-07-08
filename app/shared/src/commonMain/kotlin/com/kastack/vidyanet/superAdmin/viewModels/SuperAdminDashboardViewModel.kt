@@ -37,13 +37,13 @@ class SuperAdminDashboardViewModel : ViewModel() {
         _uiState.value = SuperAdminDashboardUiState(
             kpis = listOf(
                 DashboardKpi("Total Schools", "124", "+8%"),
-                DashboardKpi("Total Students", "45,230", "+12%"),
-                DashboardKpi("Total Teachers", "3,450", "+5%"),
-                DashboardKpi("Active Staff", "1,890", "98% Uptime"),
-                DashboardKpi("Monthly Revenue", "$450,000", "+15%"),
-                DashboardKpi("Pending Payments", "$12,500", "-5%", isError = true),
-                DashboardKpi("New Admissions", "1,240", "This Month"),
-                DashboardKpi("Overall Uptime", "99.9%", "Optimal")
+                DashboardKpi("Monthly Revenue", "₹4,50,000", "+15%"),
+                DashboardKpi("Active Sessions", "3,240", "Real-time"),
+                DashboardKpi("Avg. API Latency", "124ms", "Optimal"),
+                DashboardKpi("Total Students", "45,230", "Global Scale"),
+                DashboardKpi("Subscription Renewals", "12", "Next 30 Days"),
+                DashboardKpi("Pending Approvals", "5", "Action Required", isError = true),
+                DashboardKpi("Platform Uptime", "99.99%", "Optimal")
             ),
             systemHealth = SystemHealthState(
                 cpuUsage = 42,

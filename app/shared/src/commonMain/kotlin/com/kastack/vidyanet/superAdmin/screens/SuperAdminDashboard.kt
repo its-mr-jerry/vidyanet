@@ -144,13 +144,14 @@ private fun TopBar(academicYear: String) {
                 onValueChange = {},
                 placeholder = { AppText("Search schools, admins, or data...", style = MaterialTheme.typography.bodyMedium) },
                 leadingIcon = { Icon(Icons.Default.Search, null) },
-                modifier = Modifier.width(400.dp).height(40.dp),
+                modifier = Modifier.width(400.dp).height(48.dp),
                 shape = RoundedCornerShape(8.dp),
-                colors = TextFieldDefaults.colors(
+                singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
                     focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
                     unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent
+                    focusedBorderColor = Color.Transparent,
+                    unfocusedBorderColor = Color.Transparent
                 )
             )
 
