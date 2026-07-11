@@ -8,9 +8,6 @@ sealed interface SuperAdminDestination : NavKey {
     @Serializable
     data object Dashboard : SuperAdminDestination
     
-    // Future destinations
-    // @Serializable
-    // data object Schools : SuperAdminDestination
-    // @Serializable
-    // data object Admins : SuperAdminDestination
+    @Serializable
+    data object Schools : SuperAdminDestination
 }

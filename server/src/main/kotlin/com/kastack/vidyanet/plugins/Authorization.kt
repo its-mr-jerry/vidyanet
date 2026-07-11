@@ -20,8 +20,8 @@ val RoleBasedAuthorization = createRouteScopedPlugin(
     val userTypes = pluginConfig.userTypes
     val roles = pluginConfig.roles
 
-    onCall { call ->
-        if (userTypes.isEmpty() && roles.isEmpty()) return@onCall
+    on(AuthenticationChecked) { call ->
+        if (userTypes.isEmpty() && roles.isEmpty()) return@on
 
         val principal = call.principal<JWTPrincipal>()
         val userType = principal?.payload?.getClaim("userType")?.asString()

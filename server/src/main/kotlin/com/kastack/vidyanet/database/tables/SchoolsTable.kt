@@ -47,6 +47,9 @@ object SchoolsTable : LongIdTable("schools", "school_id") {
         SchoolStatus::class
     )
 
+    val studentCount = integer("student_count").default(0)
+    val teacherCount = integer("teacher_count").default(0)
+
     val createdAt = timestamp("created_at")
         .default(Clock.System.now().toKotlinx())
 

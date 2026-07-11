@@ -21,6 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.kastack.vidyanet.commonUi.components.AppText
+import com.kastack.vidyanet.superAdmin.components.SuperAdminLayout
 import com.kastack.vidyanet.superAdmin.viewModels.DashboardKpi
 import com.kastack.vidyanet.superAdmin.viewModels.SystemHealthState
 import com.kastack.vidyanet.superAdmin.viewModels.SuperAdminDashboardViewModel
@@ -29,148 +30,21 @@ import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun SuperAdminDashboard(
+    onNavigate: (String) -> Unit,
     viewModel: SuperAdminDashboardViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    Row(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
-        // Sidebar
-        Sidebar(modifier = Modifier.width(280.dp).fillMaxHeight())
-
-        // Main Content Area
-        Column(modifier = Modifier.fillMaxSize()) {
-            TopBar(academicYear = uiState.academicYear)
-            
-            Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainerLow)) {
-                DashboardContent(
-                    kpis = uiState.kpis,
-                    systemHealth = uiState.systemHealth
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun Sidebar(modifier: Modifier = Modifier) {
-    Surface(
-        modifier = modifier,
-        color = MaterialTheme.colorScheme.primary,
-        contentColor = MaterialTheme.colorScheme.onPrimary
+    SuperAdminLayout(
+        currentDestination = "Dashboard",
+        onNavigate = onNavigate,
+        academicYear = uiState.academicYear
     ) {
-        Column(modifier = Modifier.fillMaxSize().padding(24.dp)) {
-            AppText(
-                text = "VidyaNet",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold
+        Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainerLow)) {
+            DashboardContent(
+                kpis = uiState.kpis,
+                systemHealth = uiState.systemHealth
             )
-            AppText(
-                text = "Super Admin Portal",
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.alpha(0.8f)
-            )
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            Column(modifier = Modifier.verticalScroll(rememberScrollState()).weight(1f)) {
-                SidebarItem("Dashboard", Icons.Default.Dashboard, active = true)
-                SidebarItem("Schools", Icons.Default.Domain)
-
-                Spacer(modifier = Modifier.height(24.dp))
-                AppText(
-                    text = "MANAGEMENT",
-                    style = MaterialTheme.typography.labelMedium,
-                    modifier = Modifier.alpha(0.4f),
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-
-                SidebarItem("Fees & Finance", Icons.Default.Payments)
-                SidebarItem("Reports & Analytics", Icons.Default.Analytics)
-                SidebarItem("System Settings", Icons.Default.Settings)
-            }
-        }
-    }
-}
-
-@Composable
-private fun SidebarItem(
-    label: String,
-    icon: ImageVector,
-    active: Boolean = false
-) {
-    Surface(
-        onClick = {},
-        color = if (active) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
-        shape = RoundedCornerShape(8.dp),
-        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(24.dp),
-                tint = if (active) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            AppText(
-                text = label,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = if (active) FontWeight.Bold else FontWeight.Normal,
-                color = if (active) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
-            )
-        }
-    }
-}
-
-@Composable
-private fun TopBar(academicYear: String) {
-    Surface(
-        modifier = Modifier.fillMaxWidth().height(64.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        color = MaterialTheme.colorScheme.surface
-    ) {
-        Row(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            // Search
-            OutlinedTextField(
-                value = "",
-                onValueChange = {},
-                placeholder = { AppText("Search schools, admins, or data...", style = MaterialTheme.typography.bodyMedium) },
-                leadingIcon = { Icon(Icons.Default.Search, null) },
-                modifier = Modifier.width(400.dp).height(48.dp),
-                shape = RoundedCornerShape(8.dp),
-                singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                    focusedBorderColor = Color.Transparent,
-                    unfocusedBorderColor = Color.Transparent
-                )
-            )
-
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                AppText(
-                    text = "Academic Year: $academicYear",
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainerHigh, CircleShape).padding(horizontal = 12.dp, vertical = 4.dp)
-                )
-                IconButton(onClick = {}) {
-                    BadgedBox(badge = { Badge { AppText("") } }) {
-                        Icon(Icons.Outlined.Notifications, null)
-                    }
-                }
-                IconButton(onClick = {}) {
-                    Icon(Icons.Outlined.Settings, null)
-                }
-                Box(modifier = Modifier.size(32.dp).clip(CircleShape).background(MaterialTheme.colorScheme.outlineVariant))
-            }
         }
     }
 }
@@ -185,9 +59,31 @@ private fun DashboardContent(
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
         // Welcome Header
-        Column {
-            AppText("Platform Overview", style = MaterialTheme.typography.displayMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-            AppText("Real-time institutional analytics across all registered schools.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                AppText("Platform Overview", style = MaterialTheme.typography.displayMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                AppText("Real-time institutional analytics across all registered schools.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+
+            OutlinedTextField(
+                value = "",
+                onValueChange = {},
+                placeholder = { AppText("Search globally...", style = MaterialTheme.typography.bodyMedium) },
+                leadingIcon = { Icon(Icons.Default.Search, null) },
+                modifier = Modifier.width(360.dp).height(48.dp),
+                shape = RoundedCornerShape(8.dp),
+                singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
+                )
+            )
         }
 
         // KPI Grid
@@ -355,7 +251,7 @@ private fun EnrollmentTrendsCard() {
     ) {
         Column(modifier = Modifier.padding(24.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                AppText("Student Enrollment Trends", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                AppText("School register Trends", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 AppText(
                     text = "Last 12 Months",
                     style = MaterialTheme.typography.bodySmall,

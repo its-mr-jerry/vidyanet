@@ -24,8 +24,8 @@ object AppConfig {
     val r2PublicUrl = get("R2_PUBLIC_URL")
 
     // Database
-    val dbName = get("DB_NAME", "vidyanet_db")
-    val dbUser = get("DB_USER", "vidyanet")
+    val dbName = get("DB_NAME", "vidya_net_db")
+    val dbUser = get("DB_USER", "vidya_net")
     val dbPassword = get("DB_PASSWORD", "7209")
     val dbHost = get("DB_HOST", "localhost")
     val dbPort = get("DB_PORT", "5432").toIntOrNull() ?: 5432

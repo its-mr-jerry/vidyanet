@@ -34,12 +34,10 @@ class SplashViewModel(
                 return@launch
             }
 
-            // Token exists, verify with server and update local data
             userRepository.getMe().onSuccess { user ->
                 _isSuperAdmin.value = user.userType == UserType.PLATFORM_OWNER
                 _isLoggedIn.value = true
             }.onFailure {
-                // Token might be invalid or expired
                 databaseManager.remove("auth_token")
                 _isLoggedIn.value = false
             }

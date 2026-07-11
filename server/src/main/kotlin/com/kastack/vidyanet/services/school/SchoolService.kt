@@ -8,14 +8,20 @@ import com.kastack.vidyanet.models.schoolUser.CreateSchoolRequest
 import com.kastack.vidyanet.models.schoolUser.SchoolDto
 import com.kastack.vidyanet.models.schoolUser.UpdateSchoolRequest
 import org.jetbrains.exposed.sql.SortOrder
+import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import kotlin.time.Clock
 
 class SchoolService {
 
+    private fun generateSchoolCode(): String = transaction {
+        val count = SchoolsTable.selectAll().count() + 1
+        "vid${count.toString().padStart(3, '0')}"
+    }
+
     fun createSchool(request: CreateSchoolRequest): SchoolDto = transaction {
         SchoolEntity.new {
-            schoolCode = request.schoolCode
+            schoolCode = generateSchoolCode()
             schoolName = request.schoolName
             schoolType = request.schoolType
             phone = request.phone

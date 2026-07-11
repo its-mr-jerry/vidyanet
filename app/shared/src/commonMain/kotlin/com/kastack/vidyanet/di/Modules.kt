@@ -6,6 +6,16 @@ import com.kastack.vidyanet.data.DatabaseManager
 import com.kastack.vidyanet.data.repositories.*
 import com.kastack.vidyanet.commonUi.viewModels.LoginViewModel
 import com.kastack.vidyanet.commonUi.viewModels.SplashViewModel
+import com.kastack.vidyanet.school.viewModels.SchoolDashboardViewModel
+import com.kastack.vidyanet.school.viewModels.SchoolSettingsViewModel
+import com.kastack.vidyanet.school.viewModels.AcademicSettingsViewModel
+import com.kastack.vidyanet.school.viewModels.RolesPermissionsViewModel
+import com.kastack.vidyanet.school.viewModels.UserManagementViewModel
+import com.kastack.vidyanet.school.viewModels.AuditLogsViewModel
+import com.kastack.vidyanet.school.viewModels.NotificationSettingsViewModel
+import com.kastack.vidyanet.school.viewModels.BackupRestoreViewModel
+import com.kastack.vidyanet.school.viewModels.IntegrationsViewModel
+import com.kastack.vidyanet.superAdmin.viewModels.SchoolsViewModel
 import com.kastack.vidyanet.superAdmin.viewModels.SuperAdminDashboardViewModel
 import com.kastack.vidyanet.utils.PlatformUtils
 import com.russhwolf.settings.Settings
@@ -24,6 +34,7 @@ val coreModule = module {
     single<StorageRepository> { StorageRepositoryImpl(get(), get()) }
     single<AuthRepository> { AuthRepositoryImpl(get()) }
     single<UserRepository> { UserRepositoryImpl(get(), get()) }
+    single<SchoolRepository> { SchoolRepositoryImpl(get(), get()) }
 
     single { PlatformUtils() }
 }
@@ -41,30 +52,25 @@ val authModule = module {
  */
 val adminModule = module {
     viewModelOf(::SuperAdminDashboardViewModel)
+    viewModelOf(::SchoolsViewModel)
 }
 
-/**
- * Merchant specific module
- */
-//val merchantModule = module {
-//    single<ProductRepository> { ProductRepositoryImpl(get(), get()) }
-//
-//    // Merchant ViewModels
-//    viewModelOf(::MerchantViewModel)
-//    viewModelOf(::ProductsViewModel)
-//    viewModelOf(::MerchantOrdersViewModel)
-//    viewModelOf(::ProductDetailsViewModel)
-//}
+
 
 /**
- * Rider specific module
+ * School specific module
  */
-//val riderModule = module {
-//    viewModelOf(::RiderDashboardViewModel)
-//    viewModelOf(::RiderAssignedOrdersViewModel)
-//    viewModelOf(::RiderProfileViewModel)
-//    viewModelOf(::RiderHistoryViewModel)
-//}
+val schoolModule = module {
+    viewModelOf(::SchoolDashboardViewModel)
+    viewModelOf(::SchoolSettingsViewModel)
+    viewModelOf(::AcademicSettingsViewModel)
+    viewModelOf(::RolesPermissionsViewModel)
+    viewModelOf(::UserManagementViewModel)
+    viewModelOf(::AuditLogsViewModel)
+    viewModelOf(::NotificationSettingsViewModel)
+    viewModelOf(::BackupRestoreViewModel)
+    viewModelOf(::IntegrationsViewModel)
+}
 
 /**
  * User specific module
@@ -78,6 +84,7 @@ val appModules = listOf(
     coreModule,
     authModule,
     adminModule,
+    schoolModule,
 //    merchantModule,
 //    riderModule,
     userModule

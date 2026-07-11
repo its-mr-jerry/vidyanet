@@ -6,7 +6,7 @@ import com.kastack.vidyanet.models.schoolUser.UpdateSchoolRequest
 object SchoolValidator {
 
     fun validateCreate(request: CreateSchoolRequest) {
-        if (request.schoolCode.isBlank()) throw ValidationException("School code is required")
+        // schoolCode is now optional as it's generated on backend if blank
         if (request.schoolName.isBlank()) throw ValidationException("School name is required")
         if (request.phone.isBlank()) throw ValidationException("Phone number is required")
         if (request.address.isBlank()) throw ValidationException("Address is required")

@@ -9,4 +9,7 @@ sealed interface MainDestination : NavKey {
     data object Auth : MainDestination
     @Serializable
     data object SuperAdmin : MainDestination
+
+    @Serializable
+    data class School(val schoolId: String) : MainDestination
 }

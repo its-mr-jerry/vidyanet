@@ -21,6 +21,8 @@ class SchoolEntity(id: EntityID<Long>) : LongEntity(id) {
     var postalCode by SchoolsTable.postalCode
     var logoUrl by SchoolsTable.logoUrl
     var status by SchoolsTable.status
+    var studentCount by SchoolsTable.studentCount
+    var teacherCount by SchoolsTable.teacherCount
     var createdAt by SchoolsTable.createdAt
     var updatedAt by SchoolsTable.updatedAt
 }

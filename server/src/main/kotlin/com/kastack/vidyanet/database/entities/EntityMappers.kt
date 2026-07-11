@@ -53,7 +53,9 @@ fun SchoolEntity.toDto() = com.kastack.vidyanet.models.schoolUser.SchoolDto(
     country = country,
     postalCode = postalCode,
     logoUrl = logoUrl,
-    status = status
+    status = status,
+    studentCount = studentCount,
+    teacherCount = teacherCount
 )
 
 //fun MerchantEntity.toDto() = MerchantDto(

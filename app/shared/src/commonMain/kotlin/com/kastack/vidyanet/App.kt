@@ -13,21 +13,25 @@ import com.kastack.vidyanet.superAdmin.screens.SuperAdminDashboard
 
 import com.kastack.vidyanet.superAdmin.SuperAdminDestination
 import com.kastack.vidyanet.superAdmin.SuperAdminNavHost
+import com.kastack.vidyanet.school.SchoolDestination
+import com.kastack.vidyanet.school.SchoolNavHost
 
 @Composable
 fun App(
     initialMain: MainDestination = MainDestination.Auth,
     initialAuth: AuthDestination = AuthDestination.Splash,
-    initialSuperAdmin: SuperAdminDestination = SuperAdminDestination.Dashboard
+    initialSuperAdmin: SuperAdminDestination = SuperAdminDestination.Dashboard,
+    initialSchool: SchoolDestination = SchoolDestination.DashboardOverview
 ) {
-    val mainBackStack = remember { NavBackStack<MainDestination>(initialMain) }
-    val authBackStack = remember { NavBackStack<AuthDestination>(initialAuth) }
-    val superAdminBackStack = remember { NavBackStack<SuperAdminDestination>(initialSuperAdmin) }
+    val mainBackStack = remember { NavBackStack(initialMain) }
+    val authBackStack = remember { NavBackStack(initialAuth) }
+    val superAdminBackStack = remember { NavBackStack(initialSuperAdmin) }
+    val schoolBackStack = remember { NavBackStack(initialSchool) }
 
-    BrowserHistorySync(mainBackStack, authBackStack, superAdminBackStack)
+    BrowserHistorySync(mainBackStack, authBackStack, superAdminBackStack, schoolBackStack)
 
     VidyaNetTheme {
-        when (mainBackStack.last()) {
+        when (val current = mainBackStack.last()) {
             MainDestination.Auth -> {
                 AuthNavHost(
                     backStack = authBackStack,
@@ -38,7 +42,18 @@ fun App(
                 )
             }
             MainDestination.SuperAdmin -> {
-               SuperAdminNavHost(backStack = superAdminBackStack)
+               SuperAdminNavHost(
+                   backStack = superAdminBackStack,
+                   onNavigateToSchool = { schoolId ->
+                       mainBackStack.add(MainDestination.School(schoolId))
+                   }
+               )
+            }
+            is MainDestination.School -> {
+                SchoolNavHost(
+                    schoolId = current.schoolId,
+                    backStack = schoolBackStack
+                )
             }
         }
     }

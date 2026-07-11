@@ -47,6 +47,9 @@ fun configureDatabases(isTest: Boolean = false) {
 
         SchemaUtils.create(
             SchoolsTable,
+            SchoolSettingsTable,
+            SchoolWorkingHoursTable,
+            SchoolBranchesTable,
             RolesTable,
             UsersTable,
             OtpsTable,
@@ -55,6 +58,7 @@ fun configureDatabases(isTest: Boolean = false) {
         )
         
         seedRoles()
+        SchoolSeedScript.seedSchools()
     }
 }
 

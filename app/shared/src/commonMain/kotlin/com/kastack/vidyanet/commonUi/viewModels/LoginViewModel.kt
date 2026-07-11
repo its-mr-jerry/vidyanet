@@ -52,7 +52,6 @@ class LoginViewModel(
         viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
-            // For now defaulting to PLATFORM_OWNER, you might want to add a selector
             authRepository.sendOtp(LoginRequest(_phone.value, UserType.PLATFORM_OWNER))
                 .onSuccess {
                     _uiState.value = LoginUiState.InputOtp

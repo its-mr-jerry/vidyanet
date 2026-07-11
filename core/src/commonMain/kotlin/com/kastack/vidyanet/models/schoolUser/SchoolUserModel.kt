@@ -17,7 +17,9 @@ data class SchoolDto(
     val country: String,
     val postalCode: String,
     val logoUrl: String?,
-    val status: SchoolStatus
+    val status: SchoolStatus,
+    val studentCount: Int = 0,
+    val teacherCount: Int = 0
 )
 
 @Serializable

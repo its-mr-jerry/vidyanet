@@ -5,11 +5,13 @@ import androidx.compose.ui.Modifier
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.ui.NavDisplay
+import com.kastack.vidyanet.superAdmin.screens.SchoolsScreen
 import com.kastack.vidyanet.superAdmin.screens.SuperAdminDashboard
 
 @Composable
 fun SuperAdminNavHost(
     backStack: NavBackStack<SuperAdminDestination>,
+    onNavigateToSchool: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     NavDisplay(
@@ -18,7 +20,22 @@ fun SuperAdminNavHost(
     ) { destination ->
         NavEntry(destination) {
             when (destination) {
-                SuperAdminDestination.Dashboard -> SuperAdminDashboard()
+                SuperAdminDestination.Dashboard -> SuperAdminDashboard(
+                    onNavigate = { dest ->
+                        if (dest == "Schools") {
+                            backStack.add(SuperAdminDestination.Schools)
+                        }
+                    }
+                )
+                SuperAdminDestination.Schools -> SchoolsScreen(
+                    onNavigate = { dest ->
+                        if (dest == "Dashboard") {
+                            backStack.clear()
+                            backStack.add(SuperAdminDestination.Dashboard)
+                        }
+                    },
+                    onSchoolClick = onNavigateToSchool
+                )
             }
         }
     }
