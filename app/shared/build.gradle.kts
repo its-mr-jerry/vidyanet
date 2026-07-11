@@ -79,6 +79,9 @@ kotlin {
 
                 implementation(libs.coil.compose)
                 implementation(libs.coil.network.ktor)
+
+                api(libs.filekit.core)
+                implementation(libs.filekit.compose)
             }
         }
 

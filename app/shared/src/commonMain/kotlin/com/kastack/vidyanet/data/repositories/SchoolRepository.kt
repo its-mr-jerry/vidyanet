@@ -1,9 +1,7 @@
 package com.kastack.vidyanet.data.repositories
 
 import com.kastack.vidyanet.data.DatabaseManager
-import com.kastack.vidyanet.models.schoolUser.SchoolDto
-import com.kastack.vidyanet.models.schoolUser.CreateSchoolRequest
-import com.kastack.vidyanet.models.schoolUser.UpdateSchoolRequest
+import com.kastack.vidyanet.models.schoolUser.*
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
@@ -15,6 +13,8 @@ interface SchoolRepository {
     suspend fun createSchool(request: CreateSchoolRequest): Result<SchoolDto>
     suspend fun updateSchool(id: Long, request: UpdateSchoolRequest): Result<SchoolDto>
     suspend fun deleteSchool(id: Long): Result<Unit>
+    suspend fun getSchoolSettings(schoolId: Long): Result<SchoolSettingsDto>
+    suspend fun updateSchoolSettings(schoolId: Long, request: UpdateSchoolSettingsRequest): Result<SchoolSettingsDto>
 }
 
 class SchoolRepositoryImpl(
@@ -83,6 +83,31 @@ class SchoolRepositoryImpl(
         }
         if (response.status != HttpStatusCode.NoContent) {
             throw Exception("Failed to delete school: ${response.status}")
+        }
+    }
+
+    override suspend fun getSchoolSettings(schoolId: Long): Result<SchoolSettingsDto> = runCatching {
+        val response = httpClient.get("schools/$schoolId/settings") {
+            authHeader()
+        }
+        if (response.status == HttpStatusCode.OK) {
+            response.body<SchoolSettingsDto>()
+        } else {
+            throw Exception("Failed to fetch settings: ${response.status}")
+        }
+    }
+
+    override suspend fun updateSchoolSettings(schoolId: Long, request: UpdateSchoolSettingsRequest): Result<SchoolSettingsDto> = runCatching {
+        val response = httpClient.put("schools/$schoolId/settings") {
+            authHeader()
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }
+        if (response.status == HttpStatusCode.OK) {
+            response.body<SchoolSettingsDto>()
+        } else {
+            val errorBody = response.body<Map<String, String>>()
+            throw Exception(errorBody["message"] ?: "Failed to update settings: ${response.status}")
         }
     }
 }

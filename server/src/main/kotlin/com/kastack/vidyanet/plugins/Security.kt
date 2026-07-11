@@ -38,13 +38,13 @@ fun Application.configureSecurity() {
 }
 
 // Utility to generate token
-fun generateToken(id: Long, phone: String, userType: String, roles: List<String>): String {
+fun generateToken(id: Long, phone: String, userType: String, roles: List<String>, schoolId: Long?): String {
     val jwtAudience = AppConfig.jwtAudience
     val jwtDomain = AppConfig.jwtDomain
     val jwtSecret = AppConfig.authSecret
     
     val expiration = System.currentTimeMillis() + (3600000L * 24 * 7)
-    return JWT.create()
+    val builder = JWT.create()
         .withAudience(jwtAudience)
         .withIssuer(jwtDomain)
         .withClaim("userId", id)
@@ -52,5 +52,8 @@ fun generateToken(id: Long, phone: String, userType: String, roles: List<String>
         .withClaim("userType", userType)
         .withArrayClaim("roles", roles.toTypedArray())
         .withExpiresAt(java.util.Date(expiration))
-        .sign(Algorithm.HMAC256(jwtSecret))
+    
+    schoolId?.let { builder.withClaim("schoolId", it) }
+    
+    return builder.sign(Algorithm.HMAC256(jwtSecret))
 }

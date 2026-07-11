@@ -19,6 +19,7 @@ class SchoolSettingsEntity(id: EntityID<Long>) : LongEntity(id) {
     var establishmentDate by SchoolSettingsTable.establishmentDate
     var affiliationBoard by SchoolSettingsTable.affiliationBoard
     var primaryBrandColor by SchoolSettingsTable.primaryBrandColor
+    var logoUrl by SchoolSettingsTable.logoUrl
     var isMaintenanceMode by SchoolSettingsTable.isMaintenanceMode
 }
 
@@ -56,6 +57,7 @@ fun SchoolSettingsEntity.toDto(workingHours: List<WorkingHourDto>, branches: Lis
     establishmentDate = establishmentDate,
     affiliationBoard = affiliationBoard,
     primaryBrandColor = primaryBrandColor,
+    logoUrl = logoUrl,
     isMaintenanceMode = isMaintenanceMode,
     workingHours = workingHours,
     branches = branches

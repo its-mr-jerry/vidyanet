@@ -1,6 +1,7 @@
 package com.kastack.vidyanet.plugins
 
 
+import com.kastack.vidyanet.routes.SchoolSettingsRoute
 import com.kastack.vidyanet.routes.authRoutes
 import com.kastack.vidyanet.routes.schoolRoutes
 import com.kastack.vidyanet.routes.systemRoutes
@@ -27,6 +28,7 @@ fun Application.configureRouting() {
                 userRoutes()
                 systemRoutes()
                 schoolRoutes()
+                SchoolSettingsRoute()
                 roleRoutes()
             }
         }

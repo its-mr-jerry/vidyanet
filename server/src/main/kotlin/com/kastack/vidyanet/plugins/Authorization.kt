@@ -58,6 +58,37 @@ fun Route.authorize(vararg userTypes: UserType, roles: Array<out String> = empty
     return authorizedRoute
 }
 
+val ApplicationCall.userId: Long?
+    get() = try {
+        principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asLong()
+    } catch (e: Exception) {
+        principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asInt()?.toLong()
+    }
+
+val ApplicationCall.userType: String?
+    get() = principal<JWTPrincipal>()?.payload?.getClaim("userType")?.asString()
+
+val ApplicationCall.schoolId: Long?
+    get() = try {
+        principal<JWTPrincipal>()?.payload?.getClaim("schoolId")?.asLong()
+    } catch (e: Exception) {
+        principal<JWTPrincipal>()?.payload?.getClaim("schoolId")?.asInt()?.toLong()
+    }
+
+suspend fun ApplicationCall.ensureSchoolAccess(requestedSchoolId: Long) {
+    val type = userType
+    val userSchoolId = schoolId
+    
+    if (type == UserType.PLATFORM_OWNER.name) return
+    
+    if (type == UserType.SCHOOL_USER.name && userSchoolId == requestedSchoolId) return
+    
+    respond(HttpStatusCode.Forbidden, mapOf("message" to "You do not have access to this school's data"))
+    throw ForbiddenException("Access denied to school $requestedSchoolId")
+}
+
+class ForbiddenException(message: String) : RuntimeException(message)
+
 fun Route.authorizeRoles(vararg roles: String, build: Route.() -> Unit): Route {
     return authorize(roles = roles, build = build)
 }

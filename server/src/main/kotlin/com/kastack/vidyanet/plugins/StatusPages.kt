@@ -25,6 +25,13 @@ fun Application.configureStatusPages() {
             )
         }
 
+        exception<ForbiddenException> { call, cause ->
+            call.respond(
+                HttpStatusCode.Forbidden,
+                mapOf("message" to cause.message)
+            )
+        }
+
         exception<NotFoundException> { call, cause ->
             call.respond(
                 HttpStatusCode.NotFound,

@@ -2,6 +2,7 @@ package com.kastack.vidyanet.services.school
 
 import com.kastack.vidyanet.models.schoolUser.CreateSchoolRequest
 import com.kastack.vidyanet.models.schoolUser.UpdateSchoolRequest
+import com.kastack.vidyanet.plugins.ensureSchoolAccess
 import com.kastack.vidyanet.validators.SchoolValidator
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -26,6 +27,7 @@ class SchoolController(private val schoolService: SchoolService = SchoolService(
             call.respond(HttpStatusCode.BadRequest, "Invalid ID")
             return
         }
+        call.ensureSchoolAccess(id)
         val school = schoolService.getSchoolById(id)
         if (school != null) {
             call.respond(school)
@@ -40,6 +42,7 @@ class SchoolController(private val schoolService: SchoolService = SchoolService(
             call.respond(HttpStatusCode.BadRequest, "Invalid ID")
             return
         }
+        call.ensureSchoolAccess(id)
         val request = call.receive<UpdateSchoolRequest>()
         SchoolValidator.validateUpdate(request)
         try {

@@ -94,7 +94,8 @@ class AuthServices {
                 id = user.id.value,
                 phone = user.phone,
                 userType = user.userType.name,
-                roles = roles
+                roles = roles,
+                schoolId = user.schoolId?.value
             )
 
             LoginResponse(

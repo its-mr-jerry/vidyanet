@@ -55,18 +55,18 @@ fun ImageSelector(
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
                     )
-                    
+
                     IconButton(
                         onClick = onClear,
                         modifier = Modifier.align(Alignment.TopEnd).size(24.dp).padding(4.dp)
                     ) {
                         Icon(Icons.Default.Close, null, tint = HealthRed, modifier = Modifier.size(16.dp))
                     }
-                    
+
                     Text(
-                        "Selected", 
+                        "Selected",
                         modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 4.dp),
-                        fontSize = 10.sp, 
+                        fontSize = 10.sp,
                         color = StatusActive,
                         fontWeight = FontWeight.Bold
                     )

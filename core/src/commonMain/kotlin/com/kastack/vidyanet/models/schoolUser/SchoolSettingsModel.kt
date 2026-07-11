@@ -10,6 +10,7 @@ data class SchoolSettingsDto(
     val establishmentDate: String? = null,
     val affiliationBoard: String? = null,
     val primaryBrandColor: String? = null,
+    val logoUrl: String? = null,
     val isMaintenanceMode: Boolean = false,
     val workingHours: List<WorkingHourDto> = emptyList(),
     val branches: List<SchoolBranchDto> = emptyList()
@@ -47,6 +48,8 @@ data class UpdateSchoolSettingsRequest(
     val establishmentDate: String? = null,
     val affiliationBoard: String? = null,
     val primaryBrandColor: String? = null,
+    val logoBase64: String? = null,
     val isMaintenanceMode: Boolean? = null,
-    val workingHours: List<WorkingHourDto>? = null
+    val workingHours: List<WorkingHourDto>? = null,
+    val branches: List<SchoolBranchDto>? = null
 )

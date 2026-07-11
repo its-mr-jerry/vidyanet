@@ -1,7 +1,6 @@
 package com.kastack.vidyanet.constants
 
 object IndiaConstants {
-    val regions = listOf("North", "South", "East", "West", "North-East", "Central")
 
     val states = listOf(
         "Andhra Pradesh",
