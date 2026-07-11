@@ -16,6 +16,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kastack.vidyanet.commonUi.components.AppText
+import com.kastack.vidyanet.models.schoolUser.AcademicSessionDto
+import com.kastack.vidyanet.models.schoolUser.HolidayDto
+import com.kastack.vidyanet.models.schoolUser.UpdateAcademicSettingsRequest
 import com.kastack.vidyanet.school.components.AdaptiveIconButton
 import com.kastack.vidyanet.school.components.HeaderAction
 import com.kastack.vidyanet.school.components.SchoolSettingsHeader
@@ -32,6 +35,20 @@ fun AcademicSettings(
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
+    // Form State
+    var gradingScale by remember(uiState.settings) { mutableStateOf(uiState.settings?.gradingScale ?: "LETTER") }
+    var passMarks by remember(uiState.settings) { mutableStateOf(uiState.settings?.passMarks?.toString() ?: "35") }
+    var gpaDecimals by remember(uiState.settings) { mutableStateOf(uiState.settings?.gpaDecimals?.toString() ?: "2") }
+    var isWeightedGpa by remember(uiState.settings) { mutableStateOf(uiState.settings?.isWeightedGpa ?: false) }
+    var attendanceMode by remember(uiState.settings) { mutableStateOf(uiState.settings?.attendanceMode ?: "DAILY") }
+    var lateThreshold by remember(uiState.settings) { mutableStateOf(uiState.settings?.lateThresholdMinutes?.toString() ?: "15") }
+    var minPromotionPercentage by remember(uiState.settings) { mutableStateOf(uiState.settings?.minPromotionPercentage?.toFloat() ?: 40f) }
+    var minPromotionAttendance by remember(uiState.settings) { mutableStateOf(uiState.settings?.minPromotionAttendance?.toString() ?: "75") }
+    var requireNoDues by remember(uiState.settings) { mutableStateOf(uiState.settings?.requireNoDues ?: true) }
+
+    var showAddSessionDialog by remember { mutableStateOf(false) }
+    var showAddHolidayDialog by remember { mutableStateOf(false) }
+
     LaunchedEffect(schoolId) {
         viewModel.loadSettings(schoolId)
     }
@@ -41,6 +58,32 @@ fun AcademicSettings(
             snackbarHostState.showSnackbar("Academic settings saved successfully!")
             viewModel.resetSaveSuccess()
         }
+    }
+
+    LaunchedEffect(uiState.error) {
+        uiState.error?.let {
+            snackbarHostState.showSnackbar(it)
+        }
+    }
+
+    if (showAddSessionDialog) {
+        AddSessionDialog(
+            onDismiss = { showAddSessionDialog = false },
+            onSave = { name, start, end ->
+                viewModel.addSession(schoolId, name, start, end)
+                showAddSessionDialog = false
+            }
+        )
+    }
+
+    if (showAddHolidayDialog) {
+        AddHolidayDialog(
+            onDismiss = { showAddHolidayDialog = false },
+            onSave = { name, date ->
+                viewModel.addHoliday(schoolId, name, date)
+                showAddHolidayDialog = false
+            }
+        )
     }
 
     Scaffold(
@@ -55,47 +98,128 @@ fun AcademicSettings(
                 breadcrumbs = listOf("Settings", "Academic Settings"),
                 primaryAction = HeaderAction(
                     label = "Save Changes",
-                    onClick = { viewModel.saveSettings() },
+                    onClick = { 
+                        viewModel.saveSettings(
+                            schoolId,
+                            UpdateAcademicSettingsRequest(
+                                gradingScale = gradingScale,
+                                passMarks = passMarks.toIntOrNull(),
+                                gpaDecimals = gpaDecimals.toIntOrNull(),
+                                isWeightedGpa = isWeightedGpa,
+                                attendanceMode = attendanceMode,
+                                lateThresholdMinutes = lateThreshold.toIntOrNull(),
+                                minPromotionPercentage = minPromotionPercentage.toInt(),
+                                minPromotionAttendance = minPromotionAttendance.toIntOrNull(),
+                                requireNoDues = requireNoDues
+                            )
+                        ) 
+                    },
                     isLoading = uiState.isSaving
                 ),
                 secondaryAction = HeaderAction(
                     label = "Cancel",
-                    onClick = { /* Handle cancel */ }
+                    onClick = { viewModel.loadSettings(schoolId) }
                 )
             )
 
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(24.dp),
-                verticalArrangement = Arrangement.spacedBy(24.dp)
-            ) {
-                // Main Content: Adaptive Bento Grid Style
-                BoxWithConstraints {
-                    if (maxWidth > 1000.dp) {
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                            // Left Column
-                            Column(modifier = Modifier.weight(0.6f), verticalArrangement = Arrangement.spacedBy(24.dp)) {
-                                AcademicYearSection(uiState.academicSessions)
-                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                                    AttendanceRulesSection(Modifier.weight(1f))
-                                    PromotionRulesSection(Modifier.weight(1f))
+            if (uiState.isLoading) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(24.dp)
+                ) {
+                    // Main Content: Adaptive Bento Grid Style
+                    BoxWithConstraints {
+                        if (maxWidth > 1000.dp) {
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+                                // Left Column
+                                Column(modifier = Modifier.weight(0.6f), verticalArrangement = Arrangement.spacedBy(24.dp)) {
+                                    AcademicYearSection(
+                                        sessions = uiState.settings?.academicSessions ?: emptyList(),
+                                        onAddSession = { showAddSessionDialog = true },
+                                        onDeleteSession = { viewModel.deleteSession(schoolId, it) }
+                                    )
+                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+                                        AttendanceRulesSection(
+                                            attendanceMode = attendanceMode,
+                                            onAttendanceModeChange = { attendanceMode = it },
+                                            lateThreshold = lateThreshold,
+                                            onLateThresholdChange = { lateThreshold = it },
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        PromotionRulesSection(
+                                            minPercentage = minPromotionPercentage,
+                                            onMinPercentageChange = { minPromotionPercentage = it },
+                                            requireNoDues = requireNoDues,
+                                            onRequireNoDuesChange = { requireNoDues = it },
+                                            minAttendance = minPromotionAttendance,
+                                            onMinAttendanceChange = { minPromotionAttendance = it },
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                    }
+                                }
+                                // Right Column
+                                Column(modifier = Modifier.weight(0.4f), verticalArrangement = Arrangement.spacedBy(24.dp)) {
+                                    GradingSystemSection(
+                                        gradingScale = gradingScale,
+                                        onGradingScaleChange = { gradingScale = it },
+                                        passMarks = passMarks,
+                                        onPassMarksChange = { passMarks = it },
+                                        gpaDecimals = gpaDecimals,
+                                        onGpaDecimalsChange = { gpaDecimals = it },
+                                        isWeightedGpa = isWeightedGpa,
+                                        onIsWeightedGpaChange = { isWeightedGpa = it }
+                                    )
+                                    HolidaysCalendarSection(
+                                        holidays = uiState.settings?.holidays ?: emptyList(),
+                                        onAddHoliday = { showAddHolidayDialog = true },
+                                        onDeleteHoliday = { viewModel.deleteHoliday(schoolId, it) }
+                                    )
                                 }
                             }
-                            // Right Column
-                            Column(modifier = Modifier.weight(0.4f), verticalArrangement = Arrangement.spacedBy(24.dp)) {
-                                GradingSystemSection()
-                                HolidaysCalendarSection()
+                        } else {
+                            Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(24.dp)) {
+                                AcademicYearSection(
+                                    sessions = uiState.settings?.academicSessions ?: emptyList(),
+                                    onAddSession = { showAddSessionDialog = true },
+                                    onDeleteSession = { viewModel.deleteSession(schoolId, it) }
+                                )
+                                GradingSystemSection(
+                                    gradingScale = gradingScale,
+                                    onGradingScaleChange = { gradingScale = it },
+                                    passMarks = passMarks,
+                                    onPassMarksChange = { passMarks = it },
+                                    gpaDecimals = gpaDecimals,
+                                    onGpaDecimalsChange = { gpaDecimals = it },
+                                    isWeightedGpa = isWeightedGpa,
+                                    onIsWeightedGpaChange = { isWeightedGpa = it }
+                                )
+                                AttendanceRulesSection(
+                                    attendanceMode = attendanceMode,
+                                    onAttendanceModeChange = { attendanceMode = it },
+                                    lateThreshold = lateThreshold,
+                                    onLateThresholdChange = { lateThreshold = it }
+                                )
+                                PromotionRulesSection(
+                                    minPercentage = minPromotionPercentage,
+                                    onMinPercentageChange = { minPromotionPercentage = it },
+                                    requireNoDues = requireNoDues,
+                                    onRequireNoDuesChange = { requireNoDues = it },
+                                    minAttendance = minPromotionAttendance,
+                                    onMinAttendanceChange = { minPromotionAttendance = it }
+                                )
+                                HolidaysCalendarSection(
+                                    holidays = uiState.settings?.holidays ?: emptyList(),
+                                    onAddHoliday = { showAddHolidayDialog = true },
+                                    onDeleteHoliday = { viewModel.deleteHoliday(schoolId, it) }
+                                )
                             }
-                        }
-                    } else {
-                        Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(24.dp)) {
-                            AcademicYearSection(uiState.academicSessions)
-                            GradingSystemSection()
-                            AttendanceRulesSection()
-                            PromotionRulesSection()
-                            HolidaysCalendarSection()
                         }
                     }
                 }
@@ -105,8 +229,13 @@ fun AcademicSettings(
 }
 
 
+
 @Composable
-private fun AcademicYearSection(sessions: List<com.kastack.vidyanet.school.viewModels.AcademicSession>) {
+private fun AcademicYearSection(
+    sessions: List<AcademicSessionDto>,
+    onAddSession: () -> Unit,
+    onDeleteSession: (Long) -> Unit
+) {
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         BoxWithConstraints {
             val isCompact = maxWidth < 500.dp
@@ -123,7 +252,7 @@ private fun AcademicYearSection(sessions: List<com.kastack.vidyanet.school.viewM
                     AdaptiveIconButton(
                         label = "Add New Session",
                         icon = Icons.Default.Add,
-                        onClick = { },
+                        onClick = onAddSession,
                         isMobile = isCompact
                     )
                 }
@@ -137,7 +266,7 @@ private fun AcademicYearSection(sessions: List<com.kastack.vidyanet.school.viewM
                         Icon(Icons.Default.CalendarMonth, null, tint = MaterialTheme.colorScheme.primary)
                         AppText("Academic Year Management", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                     }
-                    TextButton(onClick = { }) {
+                    TextButton(onClick = onAddSession) {
                         Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(4.dp))
                         AppText("Add New Session", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
@@ -147,14 +276,27 @@ private fun AcademicYearSection(sessions: List<com.kastack.vidyanet.school.viewM
         }
 
         sessions.forEach { session ->
-            AcademicSessionCard(session)
+            AcademicSessionCard(session, onDelete = { session.id?.let { onDeleteSession(it) } })
+        }
+        
+        if (sessions.isEmpty()) {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerLow,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+            ) {
+                Box(Modifier.padding(32.dp), contentAlignment = Alignment.Center) {
+                    AppText("No academic sessions defined.", color = MaterialTheme.colorScheme.outline)
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun AcademicSessionCard(session: com.kastack.vidyanet.school.viewModels.AcademicSession) {
-    val isCurrent = session.status == "Current"
+private fun AcademicSessionCard(session: AcademicSessionDto, onDelete: () -> Unit) {
+    val isCurrent = session.status == "CURRENT"
     
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -171,10 +313,10 @@ private fun AcademicSessionCard(session: com.kastack.vidyanet.school.viewModels.
                         SessionIcon(session.status, isCurrent)
                         Column(modifier = Modifier.weight(1f)) {
                             AppText(session.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
-                            AppText(session.duration, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            AppText("${session.startDate} — ${session.endDate}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        IconButton(onClick = {}) {
-                            Icon(Icons.Default.MoreVert, null, tint = MaterialTheme.colorScheme.outline)
+                        IconButton(onClick = onDelete) {
+                            Icon(Icons.Default.Delete, null, tint = AcademicError, modifier = Modifier.size(20.dp))
                         }
                     }
                     Row(
@@ -195,14 +337,14 @@ private fun AcademicSessionCard(session: com.kastack.vidyanet.school.viewModels.
                         SessionIcon(session.status, isCurrent)
                         Column {
                             AppText(session.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
-                            AppText(session.duration, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            AppText("${session.startDate} — ${session.endDate}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                     
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                         SessionStatusBadge(session.status)
-                        IconButton(onClick = {}) {
-                            Icon(Icons.Default.MoreVert, null, tint = MaterialTheme.colorScheme.outline)
+                        IconButton(onClick = onDelete) {
+                            Icon(Icons.Default.Delete, null, tint = AcademicError, modifier = Modifier.size(20.dp))
                         }
                     }
                 }
@@ -225,8 +367,8 @@ private fun SessionIcon(status: String, isCurrent: Boolean) {
     ) {
         Icon(
             imageVector = when(status) {
-                "Current" -> Icons.Default.EventAvailable
-                "Upcoming" -> Icons.Default.Update
+                "CURRENT" -> Icons.Default.EventAvailable
+                "UPCOMING" -> Icons.Default.Update
                 else -> Icons.Default.History
             },
             contentDescription = null,
@@ -238,15 +380,24 @@ private fun SessionIcon(status: String, isCurrent: Boolean) {
 @Composable
 private fun SessionStatusBadge(status: String) {
     val badgeColor = when(status) {
-        "Current" -> AcademicSuccess
-        "Upcoming" -> MaterialTheme.colorScheme.primary
+        "CURRENT" -> AcademicSuccess
+        "UPCOMING" -> MaterialTheme.colorScheme.primary
         else -> MaterialTheme.colorScheme.outline
     }
     StatusBadge(text = status, color = badgeColor)
 }
 
 @Composable
-private fun GradingSystemSection() {
+private fun GradingSystemSection(
+    gradingScale: String,
+    onGradingScaleChange: (String) -> Unit,
+    passMarks: String,
+    onPassMarksChange: (String) -> Unit,
+    gpaDecimals: String,
+    onGpaDecimalsChange: (String) -> Unit,
+    isWeightedGpa: Boolean,
+    onIsWeightedGpaChange: (Boolean) -> Unit
+) {
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Icon(Icons.Default.Grade, null, tint = MaterialTheme.colorScheme.primary)
@@ -263,19 +414,19 @@ private fun GradingSystemSection() {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     AppText("Primary Grading Scale", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        GradingScaleButton("Letter", "A, B, C...", true, Modifier.weight(1f))
-                        GradingScaleButton("GPA", "4.0 Scale", false, Modifier.weight(1f))
-                        GradingScaleButton("Percent", "0 - 100%", false, Modifier.weight(1f))
+                        GradingScaleButton("Letter", "A, B, C...", gradingScale == "LETTER", Modifier.weight(1f)) { onGradingScaleChange("LETTER") }
+                        GradingScaleButton("GPA", "4.0 Scale", gradingScale == "GPA", Modifier.weight(1f)) { onGradingScaleChange("GPA") }
+                        GradingScaleButton("Percent", "0 - 100%", gradingScale == "PERCENT", Modifier.weight(1f)) { onGradingScaleChange("PERCENT") }
                     }
                 }
                 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    SettingsInputField("Pass Marks (%)", "35", Modifier.weight(1f))
-                    SettingsDropdownField("GPA Decimals", "2 Places", Modifier.weight(1f))
+                    SettingsInputField("Pass Marks (%)", passMarks, onPassMarksChange, Modifier.weight(1f))
+                    SettingsDropdownField("GPA Decimals", "$gpaDecimals Places", Modifier.weight(1f)) { onGpaDecimalsChange("2") }
                 }
                 
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Checkbox(checked = false, onCheckedChange = {})
+                    Checkbox(checked = isWeightedGpa, onCheckedChange = onIsWeightedGpaChange)
                     AppText("Enable Weighted GPA Calculation", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
                 }
             }
@@ -284,13 +435,13 @@ private fun GradingSystemSection() {
 }
 
 @Composable
-private fun GradingScaleButton(label: String, subLabel: String, selected: Boolean, modifier: Modifier) {
+private fun GradingScaleButton(label: String, subLabel: String, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(8.dp),
         border = BorderStroke(2.dp, if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant),
         color = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.05f) else Color.Transparent,
-        onClick = {}
+        onClick = onClick
     ) {
         Column(
             modifier = Modifier.padding(12.dp),
@@ -303,7 +454,13 @@ private fun GradingScaleButton(label: String, subLabel: String, selected: Boolea
 }
 
 @Composable
-private fun AttendanceRulesSection(modifier: Modifier = Modifier) {
+private fun AttendanceRulesSection(
+    attendanceMode: String,
+    onAttendanceModeChange: (String) -> Unit,
+    lateThreshold: String,
+    onLateThresholdChange: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Icon(Icons.AutoMirrored.Filled.Rule, null, tint = MaterialTheme.colorScheme.primary)
@@ -318,16 +475,16 @@ private fun AttendanceRulesSection(modifier: Modifier = Modifier) {
         ) {
             Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(24.dp)) {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    AttendanceRuleRow("Daily Attendance", "Mark once per day", true)
-                    AttendanceRuleRow("Subject-wise", "Per lecture session", false)
+                    AttendanceRuleRow("Daily Attendance", "Mark once per day", attendanceMode == "DAILY") { onAttendanceModeChange("DAILY") }
+                    AttendanceRuleRow("Subject-wise", "Per lecture session", attendanceMode == "SUBJECT_WISE") { onAttendanceModeChange("SUBJECT_WISE") }
                 }
                 
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     AppText("Late Threshold (Mins)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         OutlinedTextField(
-                            value = "15",
-                            onValueChange = {},
+                            value = lateThreshold,
+                            onValueChange = onLateThresholdChange,
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(8.dp),
                             textStyle = MaterialTheme.typography.bodyMedium
@@ -349,12 +506,12 @@ private fun AttendanceRulesSection(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun AttendanceRuleRow(title: String, subtitle: String, active: Boolean) {
+private fun AttendanceRuleRow(title: String, subtitle: String, active: Boolean, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
-            .clickable { }
+            .clickable { onClick() }
             .padding(8.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
@@ -363,16 +520,31 @@ private fun AttendanceRuleRow(title: String, subtitle: String, active: Boolean) 
             AppText(title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
             AppText(subtitle, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        Switch(checked = active, onCheckedChange = {})
+        RadioButton(selected = active, onClick = onClick)
     }
 }
 
 @Composable
-private fun HolidaysCalendarSection() {
+private fun HolidaysCalendarSection(
+    holidays: List<HolidayDto>,
+    onAddHoliday: () -> Unit,
+    onDeleteHoliday: (Long) -> Unit
+) {
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Icon(Icons.Default.BedtimeOff, null, tint = MaterialTheme.colorScheme.primary)
-            AppText("Holidays & Calendar", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Icon(Icons.Default.BedtimeOff, null, tint = MaterialTheme.colorScheme.primary)
+                AppText("Holidays & Calendar", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            }
+            TextButton(onClick = onAddHoliday) {
+                Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(4.dp))
+                AppText("Add Holiday", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+            }
         }
         
         Surface(
@@ -390,34 +562,71 @@ private fun HolidaysCalendarSection() {
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    AppText("October 2024", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Icon(Icons.Default.ChevronLeft, null, tint = MaterialTheme.colorScheme.outline, modifier = Modifier.size(20.dp))
-                        Icon(Icons.Default.ChevronRight, null, tint = MaterialTheme.colorScheme.outline, modifier = Modifier.size(20.dp))
-                    }
+                    AppText("Academic Year Holidays", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                 }
                 
-                // Calendar Mock
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
-                        listOf("S", "M", "T", "W", "T", "F", "S").forEach { day ->
-                            AppText(day, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.outline)
+                if (holidays.isEmpty()) {
+                    Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                        AppText("No holidays defined.", color = MaterialTheme.colorScheme.outline)
+                    }
+                } else {
+                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        holidays.forEach { holiday ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(MaterialTheme.colorScheme.surfaceContainerLow, RoundedCornerShape(8.dp))
+                                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    Box(modifier = Modifier.size(8.dp).background(MaterialTheme.colorScheme.primary, CircleShape))
+                                    Column {
+                                        AppText(holiday.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                                        AppText(holiday.date, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                }
+                                IconButton(onClick = { holiday.id?.let { onDeleteHoliday(it) } }) {
+                                    Icon(Icons.Default.Delete, null, tint = AcademicError, modifier = Modifier.size(20.dp))
+                                }
+                            }
                         }
                     }
-                    Spacer(Modifier.height(8.dp))
-                    // Simplistic calendar grid mock
-                    CalendarRow(listOf("29", "30", "1", "2", "3", "4", "5"), holidayIdx = 3)
-                    CalendarRow(listOf("6", "7", "8", "9", "10", "11", "12"), holidayIdx = 5)
-                }
-                
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Box(modifier = Modifier.size(8.dp).background(MaterialTheme.colorScheme.primary, CircleShape))
-                    AppText("2nd Oct: National Holiday", style = MaterialTheme.typography.labelSmall)
                 }
             }
         }
     }
+}
+
+@Composable
+private fun AddHolidayDialog(
+    onDismiss: () -> Unit,
+    onSave: (name: String, date: String) -> Unit
+) {
+    var name by remember { mutableStateOf("") }
+    var date by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { AppText("Add Holiday", fontWeight = FontWeight.Bold) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                OutlinedTextField(value = name, onValueChange = { name = it }, label = { AppText("Holiday Name") }, placeholder = { AppText("e.g. Diwali") })
+                OutlinedTextField(value = date, onValueChange = { date = it }, label = { AppText("Date") }, placeholder = { AppText("YYYY-MM-DD") })
+            }
+        },
+        confirmButton = {
+            Button(onClick = { if (name.isNotBlank() && date.isNotBlank()) onSave(name, date) }) {
+                AppText("Save")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                AppText("Cancel")
+            }
+        }
+    )
 }
 
 @Composable
@@ -443,7 +652,15 @@ private fun CalendarRow(days: List<String>, holidayIdx: Int = -1) {
 }
 
 @Composable
-private fun PromotionRulesSection(modifier: Modifier = Modifier) {
+private fun PromotionRulesSection(
+    minPercentage: Float,
+    onMinPercentageChange: (Float) -> Unit,
+    requireNoDues: Boolean,
+    onRequireNoDuesChange: (Boolean) -> Unit,
+    minAttendance: String,
+    onMinAttendanceChange: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Icon(Icons.AutoMirrored.Filled.TrendingUp, null, tint = MaterialTheme.colorScheme.primary)
@@ -471,25 +688,26 @@ private fun PromotionRulesSection(modifier: Modifier = Modifier) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     AppText("Min. Overall Percentage", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Slider(
-                        value = 0.4f, 
-                        onValueChange = {},
+                        value = minPercentage / 100f, 
+                        onValueChange = { onMinPercentageChange(it * 100f) },
                         colors = SliderDefaults.colors(thumbColor = MaterialTheme.colorScheme.primary, activeTrackColor = MaterialTheme.colorScheme.primary)
                     )
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         AppText("0%", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-                        AppText("40% Minimum", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                        AppText("${minPercentage.toInt()}% Minimum", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                         AppText("100%", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
                     }
                 }
                 
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Checkbox(checked = true, onCheckedChange = {})
+                        Checkbox(checked = requireNoDues, onCheckedChange = onRequireNoDuesChange)
                         AppText("Require No Dues Clearance", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
                     }
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Checkbox(checked = true, onCheckedChange = {})
-                        AppText("Min. Attendance (75%)", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
+                        val attendanceChecked = (minAttendance.toIntOrNull() ?: 0) > 0
+                        Checkbox(checked = attendanceChecked, onCheckedChange = { if (it) onMinAttendanceChange("75") else onMinAttendanceChange("0") })
+                        AppText("Min. Attendance ($minAttendance%)", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
                     }
                 }
             }
@@ -498,12 +716,12 @@ private fun PromotionRulesSection(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun SettingsInputField(label: String, value: String, modifier: Modifier = Modifier) {
+private fun SettingsInputField(label: String, value: String, onValueChange: (String) -> Unit, modifier: Modifier = Modifier) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         AppText(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         OutlinedTextField(
             value = value,
-            onValueChange = {},
+            onValueChange = onValueChange,
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(8.dp),
             colors = OutlinedTextFieldDefaults.colors(
@@ -516,13 +734,13 @@ private fun SettingsInputField(label: String, value: String, modifier: Modifier 
 }
 
 @Composable
-private fun SettingsDropdownField(label: String, value: String, modifier: Modifier = Modifier) {
+private fun SettingsDropdownField(label: String, value: String, modifier: Modifier = Modifier, onClick: () -> Unit = {}) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         AppText(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         OutlinedTextField(
             value = value,
             onValueChange = {},
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().clickable { onClick() },
             shape = RoundedCornerShape(8.dp),
             trailingIcon = { Icon(Icons.Default.ArrowDropDown, null) },
             readOnly = true,
@@ -533,4 +751,36 @@ private fun SettingsDropdownField(label: String, value: String, modifier: Modifi
             textStyle = MaterialTheme.typography.bodyMedium
         )
     }
+}
+
+@Composable
+private fun AddSessionDialog(
+    onDismiss: () -> Unit,
+    onSave: (name: String, start: String, end: String) -> Unit
+) {
+    var name by remember { mutableStateOf("") }
+    var start by remember { mutableStateOf("") }
+    var end by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { AppText("Add Academic Session", fontWeight = FontWeight.Bold) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                OutlinedTextField(value = name, onValueChange = { name = it }, label = { AppText("Session Name") }, placeholder = { AppText("e.g. 2024-25") })
+                OutlinedTextField(value = start, onValueChange = { start = it }, label = { AppText("Start Date") }, placeholder = { AppText("YYYY-MM-DD") })
+                OutlinedTextField(value = end, onValueChange = { end = it }, label = { AppText("End Date") }, placeholder = { AppText("YYYY-MM-DD") })
+            }
+        },
+        confirmButton = {
+            Button(onClick = { if (name.isNotBlank()) onSave(name, start, end) }) {
+                AppText("Save")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                AppText("Cancel")
+            }
+        }
+    )
 }

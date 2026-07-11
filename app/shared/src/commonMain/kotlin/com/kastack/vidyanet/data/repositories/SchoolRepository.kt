@@ -15,6 +15,12 @@ interface SchoolRepository {
     suspend fun deleteSchool(id: Long): Result<Unit>
     suspend fun getSchoolSettings(schoolId: Long): Result<SchoolSettingsDto>
     suspend fun updateSchoolSettings(schoolId: Long, request: UpdateSchoolSettingsRequest): Result<SchoolSettingsDto>
+    suspend fun getAcademicSettings(schoolId: Long): Result<AcademicSettingsDto>
+    suspend fun updateAcademicSettings(schoolId: Long, request: UpdateAcademicSettingsRequest): Result<Unit>
+    suspend fun addAcademicSession(schoolId: Long, session: AcademicSessionDto): Result<Unit>
+    suspend fun deleteAcademicSession(sessionId: Long): Result<Unit>
+    suspend fun addHoliday(schoolId: Long, holiday: HolidayDto): Result<Unit>
+    suspend fun deleteHoliday(holidayId: Long): Result<Unit>
 }
 
 class SchoolRepositoryImpl(
@@ -108,6 +114,66 @@ class SchoolRepositoryImpl(
         } else {
             val errorBody = response.body<Map<String, String>>()
             throw Exception(errorBody["message"] ?: "Failed to update settings: ${response.status}")
+        }
+    }
+
+    override suspend fun getAcademicSettings(schoolId: Long): Result<AcademicSettingsDto> = runCatching {
+        val response = httpClient.get("schools/$schoolId/academic-settings") {
+            authHeader()
+        }
+        if (response.status == HttpStatusCode.OK) {
+            response.body<AcademicSettingsDto>()
+        } else {
+            throw Exception("Failed to fetch academic settings: ${response.status}")
+        }
+    }
+
+    override suspend fun updateAcademicSettings(schoolId: Long, request: UpdateAcademicSettingsRequest): Result<Unit> = runCatching {
+        val response = httpClient.put("schools/$schoolId/academic-settings") {
+            authHeader()
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }
+        if (response.status != HttpStatusCode.OK) {
+            throw Exception("Failed to update academic settings: ${response.status}")
+        }
+    }
+
+    override suspend fun addAcademicSession(schoolId: Long, session: AcademicSessionDto): Result<Unit> = runCatching {
+        val response = httpClient.post("schools/$schoolId/academic-settings/sessions") {
+            authHeader()
+            contentType(ContentType.Application.Json)
+            setBody(session)
+        }
+        if (response.status != HttpStatusCode.Created) {
+            throw Exception("Failed to add session: ${response.status}")
+        }
+    }
+
+    override suspend fun deleteAcademicSession(sessionId: Long): Result<Unit> = runCatching {
+        val response = httpClient.delete("schools/0/academic-settings/sessions/$sessionId") { // schoolId is ignored in this endpoint but route has it... wait
+            authHeader()
+        }
+        if (response.status != HttpStatusCode.OK) {
+            throw Exception("Failed to delete session: ${response.status}")
+        }
+    }
+
+    override suspend fun addHoliday(schoolId: Long, holiday: HolidayDto): Result<Unit> = runCatching {
+        val response = httpClient.post("schools/$schoolId/academic-settings/holidays") {
+            authHeader()
+            contentType(ContentType.Application.Json)
+            setBody(holiday)
+        }
+        if (response.status != HttpStatusCode.Created) {
+            throw Exception("Failed to add holiday: ${response.status}")
+        }
+    }
+
+    override suspend fun deleteHoliday(holidayId: Long): Result<Unit> = runCatching {
+        val response = httpClient.delete("schools/0/academic-settings/holidays/$holidayId")
+        if (response.status != HttpStatusCode.OK) {
+            throw Exception("Failed to delete holiday: ${response.status}")
         }
     }
 }

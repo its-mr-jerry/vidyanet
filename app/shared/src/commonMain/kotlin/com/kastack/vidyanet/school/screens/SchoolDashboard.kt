@@ -49,7 +49,9 @@ fun SchoolDashboard(
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
             // Top Welcome Section
-            WelcomeHeader(schoolName = uiState.school?.schoolName ?: "School Admin")
+            WelcomeHeader(
+                schoolName = uiState.school?.schoolName ?: "School Admin"
+            )
 
             // Statistics Cards (First Row)
             FlowRow(
@@ -191,7 +193,7 @@ private fun WelcomeHeader(schoolName: String) {
                 fontWeight = FontWeight.Bold
             )
             AppText(
-                "Today is Monday, Oct 23, 2023 | Academic Session: 2023-24",
+                "Today is Monday, Oct 23, 2023",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

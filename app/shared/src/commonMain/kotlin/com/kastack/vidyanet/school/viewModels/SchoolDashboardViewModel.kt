@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kastack.vidyanet.data.repositories.SchoolRepository
 import com.kastack.vidyanet.models.schoolUser.SchoolDto
+import com.kastack.vidyanet.models.schoolUser.AcademicSettingsDto
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -11,6 +12,7 @@ import kotlinx.coroutines.launch
 
 data class SchoolDashboardUiState(
     val school: SchoolDto? = null,
+    val academicSettings: AcademicSettingsDto? = null,
     val isLoading: Boolean = false,
     val error: String? = null,
     val studentCount: String = "0",
@@ -32,16 +34,25 @@ class SchoolDashboardViewModel(
     val uiState: StateFlow<SchoolDashboardUiState> = _uiState.asStateFlow()
 
     fun loadDashboardData(schoolId: String) {
+        val id = schoolId.toLongOrNull() ?: return
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-            schoolRepository.getSchoolById(schoolId.toLong()).onSuccess { school ->
+            
+            val schoolResult = schoolRepository.getSchoolById(id)
+            val settingsResult = schoolRepository.getAcademicSettings(id)
+
+            if (schoolResult.isSuccess && settingsResult.isSuccess) {
+                val school = schoolResult.getOrThrow()
+                val settings = settingsResult.getOrThrow()
+                
                 _uiState.value = _uiState.value.copy(
                     school = school,
+                    academicSettings = settings,
                     isLoading = false,
                     studentCount = school.studentCount.toString(),
                     teacherCount = school.teacherCount.toString(),
-                    staffCount = (school.teacherCount + 12).toString(), // Mocked offset
-                    parentCount = (school.studentCount * 0.8).toInt().toString(), // Mocked ratio
+                    staffCount = (school.teacherCount + 12).toString(),
+                    parentCount = (school.studentCount * 0.8).toInt().toString(),
                     pendingAdmissions = "24",
                     activeClasses = "42",
                     studentAttendance = "94%",
@@ -49,10 +60,10 @@ class SchoolDashboardViewModel(
                     todaysFee = "$12,450.00",
                     pendingFee = "$4,280.00"
                 )
-            }.onFailure { e ->
+            } else {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    error = e.message ?: "Failed to load dashboard data"
+                    error = schoolResult.exceptionOrNull()?.message ?: settingsResult.exceptionOrNull()?.message ?: "Failed to load dashboard data"
                 )
             }
         }

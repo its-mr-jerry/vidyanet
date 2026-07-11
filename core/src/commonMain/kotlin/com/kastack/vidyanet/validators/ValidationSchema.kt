@@ -9,7 +9,8 @@ data class FieldSchema(
     val maxLength: Int = Int.MAX_VALUE,
     val minLength: Int = 0,
     val inputType: AppInputType = AppInputType.TEXT,
-    val isRequired: Boolean = true
+    val isRequired: Boolean = true,
+    val isExactLength: Boolean = false
 ) {
     /**
      * Checks if the input is valid during real-time typing.
@@ -43,8 +44,8 @@ data class FieldSchema(
                     if (it.isNotEmpty() && !it.all { char -> char.isDigit() }) {
                         throw ValidationException("$label must contain only digits")
                     }
-                    // For specific cases like Phone (10) or Postal (6), we enforce exact length if maxLength is small
-                    if (maxLength < 20 && it.isNotEmpty() && it.length != maxLength) {
+                    
+                    if (isExactLength && it.isNotEmpty() && it.length != maxLength) {
                          throw ValidationException("$label must be exactly $maxLength digits")
                     }
                 }
@@ -62,17 +63,19 @@ data class FieldSchema(
 object ValidationSchema {
     val school = SchoolSchema
     val branch = BranchSchema
+    val academic = AcademicSchema
+    val session = AcademicSessionSchema
 }
 
 object SchoolSchema {
     val name = FieldSchema("School name", maxLength = 150)
-    val phone = FieldSchema("Phone number", maxLength = 10, inputType = AppInputType.PHONE)
+    val phone = FieldSchema("Phone number", maxLength = 10, inputType = AppInputType.PHONE, isExactLength = true)
     val email = FieldSchema("Email address", maxLength = 150, inputType = AppInputType.EMAIL, isRequired = false)
     val address = FieldSchema("Address", maxLength = 255)
     val city = FieldSchema("City", maxLength = 100)
     val state = FieldSchema("State", maxLength = 100)
     val country = FieldSchema("Country", maxLength = 100)
-    val postalCode = FieldSchema("Postal code", maxLength = 6, inputType = AppInputType.NUMBER)
+    val postalCode = FieldSchema("Postal code", maxLength = 6, inputType = AppInputType.NUMBER, isExactLength = true)
 }
 
 object BranchSchema {
@@ -82,8 +85,22 @@ object BranchSchema {
     val city = FieldSchema("City", maxLength = 100)
     val state = FieldSchema("State", maxLength = 100)
     val country = FieldSchema("Country", maxLength = 100)
-    val postalCode = FieldSchema("Postal code", maxLength = 6, inputType = AppInputType.NUMBER)
+    val postalCode = FieldSchema("Postal code", maxLength = 6, inputType = AppInputType.NUMBER, isExactLength = true)
     val contactPerson = FieldSchema("Contact person", maxLength = 100)
-    val phone = FieldSchema("Phone number", maxLength = 10, inputType = AppInputType.PHONE)
+    val phone = FieldSchema("Phone number", maxLength = 10, inputType = AppInputType.PHONE, isExactLength = true)
     val email = FieldSchema("Email", maxLength = 150, inputType = AppInputType.EMAIL, isRequired = false)
+}
+
+object AcademicSchema {
+    val passMarks = FieldSchema("Pass marks", maxLength = 3, inputType = AppInputType.NUMBER)
+    val gpaDecimals = FieldSchema("GPA decimals", maxLength = 1, inputType = AppInputType.NUMBER)
+    val lateThreshold = FieldSchema("Late threshold", maxLength = 3, inputType = AppInputType.NUMBER)
+    val minPromotionPercentage = FieldSchema("Min promotion percentage", maxLength = 3, inputType = AppInputType.NUMBER)
+    val minPromotionAttendance = FieldSchema("Min promotion attendance", maxLength = 3, inputType = AppInputType.NUMBER)
+}
+
+object AcademicSessionSchema {
+    val name = FieldSchema("Session name", maxLength = 100)
+    val startDate = FieldSchema("Start date", maxLength = 10)
+    val endDate = FieldSchema("End date", maxLength = 10)
 }

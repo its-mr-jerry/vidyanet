@@ -12,6 +12,14 @@ data class AcademicSessionDto(
 )
 
 @Serializable
+data class HolidayDto(
+    val id: Long? = null,
+    val name: String,
+    val date: String, // YYYY-MM-DD
+    val type: String = "HOLIDAY" // HOLIDAY, EVENT, OBSERVANCE
+)
+
+@Serializable
 data class AcademicSettingsDto(
     val schoolId: Long,
     val gradingScale: String = "LETTER", // LETTER, GPA, PERCENT
@@ -23,8 +31,10 @@ data class AcademicSettingsDto(
     val minPromotionPercentage: Int = 40,
     val minPromotionAttendance: Int = 75,
     val requireNoDues: Boolean = true,
-    val academicSessions: List<AcademicSessionDto> = emptyList()
+    val academicSessions: List<AcademicSessionDto> = emptyList(),
+    val holidays: List<HolidayDto> = emptyList()
 )
+
 
 @Serializable
 data class UpdateAcademicSettingsRequest(

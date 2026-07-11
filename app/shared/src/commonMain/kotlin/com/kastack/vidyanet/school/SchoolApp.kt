@@ -24,16 +24,25 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kastack.vidyanet.commonUi.components.AppText
+import com.kastack.vidyanet.school.viewModels.SchoolAppViewModel
+import org.koin.compose.viewmodel.koinViewModel
 import kotlinx.coroutines.launch
 
 @Composable
 fun SchoolApp(
     schoolId: String,
-    schoolName: String = "St. Xavier's High School",
     currentDestination: SchoolDestination,
     onNavigate: (SchoolDestination) -> Unit,
+    viewModel: SchoolAppViewModel = koinViewModel(),
     content: @Composable (PaddingValues) -> Unit
 ) {
+    val uiState by viewModel.uiState.collectAsState()
+    val schoolName = uiState.school?.schoolName ?: "VidyaNet"
+    
+    LaunchedEffect(schoolId) {
+        viewModel.loadSchoolInfo(schoolId)
+    }
+
     var isSidebarCollapsed by remember { mutableStateOf(false) }
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -57,7 +66,8 @@ fun SchoolApp(
                                 onNavigate(it)
                                 scope.launch { drawerState.close() }
                             },
-                            schoolName = schoolName
+                            schoolName = schoolName,
+                            uiState = uiState
                         )
                     }
                 }
@@ -66,6 +76,7 @@ fun SchoolApp(
                     schoolName = schoolName,
                     isMobile = true,
                     onMenuClick = { scope.launch { drawerState.open() } },
+                    uiState = uiState,
                     content = content
                 )
             }
@@ -81,7 +92,8 @@ fun SchoolApp(
                         isCollapsed = isSidebarCollapsed,
                         currentDestination = currentDestination,
                         onNavigate = onNavigate,
-                        schoolName = schoolName
+                        schoolName = schoolName,
+                        uiState = uiState
                     )
                 }
 
@@ -89,6 +101,7 @@ fun SchoolApp(
                     schoolName = schoolName,
                     isMobile = false,
                     onMenuClick = { isSidebarCollapsed = !isSidebarCollapsed },
+                    uiState = uiState,
                     content = content
                 )
             }
@@ -101,13 +114,15 @@ private fun MainContent(
     schoolName: String,
     isMobile: Boolean,
     onMenuClick: () -> Unit,
+    uiState: com.kastack.vidyanet.school.viewModels.SchoolAppUiState,
     content: @Composable (PaddingValues) -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         TopHeader(
             schoolName = schoolName,
             isMobile = isMobile,
-            onToggleSidebar = onMenuClick
+            onToggleSidebar = onMenuClick,
+            uiState = uiState
         )
         Box(modifier = Modifier.weight(1f)) {
             content(PaddingValues(0.dp))
@@ -121,7 +136,8 @@ private fun SidebarContent(
     isCollapsed: Boolean,
     currentDestination: SchoolDestination,
     onNavigate: (SchoolDestination) -> Unit,
-    schoolName: String
+    schoolName: String,
+    uiState: com.kastack.vidyanet.school.viewModels.SchoolAppUiState
 ) {
     var expandedCategory by remember { mutableStateOf<String?>(null) }
 
@@ -139,13 +155,18 @@ private fun SidebarContent(
                     .background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.School, null, modifier = Modifier.size(24.dp))
+                if (uiState.school?.logoUrl != null) {
+                    // In a real app, use an image loader here
+                    Icon(Icons.Default.School, null, modifier = Modifier.size(24.dp))
+                } else {
+                    Icon(Icons.Default.School, null, modifier = Modifier.size(24.dp))
+                }
             }
             if (!isCollapsed) {
                 Spacer(modifier = Modifier.width(12.dp))
                 Column {
                     AppText(
-                        text = "VidyaNet Admin",
+                        text = "VidyaNet",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
@@ -690,7 +711,8 @@ private fun SidebarItem(
 private fun TopHeader(
     schoolName: String,
     isMobile: Boolean,
-    onToggleSidebar: () -> Unit
+    onToggleSidebar: () -> Unit,
+    uiState: com.kastack.vidyanet.school.viewModels.SchoolAppUiState
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth().height(64.dp),
@@ -716,34 +738,7 @@ private fun TopHeader(
 
             if (!isMobile) {
                 Spacer(modifier = Modifier.width(24.dp))
-
-                // Session Selector
-                var expandedSession by remember { mutableStateOf(false) }
-                Box {
-                    Surface(
-                        onClick = { expandedSession = true },
-                        shape = RoundedCornerShape(8.dp),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                        color = MaterialTheme.colorScheme.surfaceContainerLow
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            AppText("2023-24", style = MaterialTheme.typography.labelLarge)
-                            Icon(Icons.Default.ArrowDropDown, null)
-                        }
-                    }
-                    DropdownMenu(expanded = expandedSession, onDismissRequest = { expandedSession = false }) {
-                        DropdownMenuItem(text = { Text("2023-24") }, onClick = { expandedSession = false })
-                        DropdownMenuItem(text = { Text("2024-25") }, onClick = { expandedSession = false })
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            if (!isMobile) {
+                
                 // Global Search
                 Box(
                     modifier = Modifier
@@ -768,7 +763,8 @@ private fun TopHeader(
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (!isMobile) {
                     IconButton(onClick = {}) {
-                        BadgedBox(badge = { Badge { AppText("5") } }) {
+                        val notificationCount = uiState.unreadNotifications
+                        BadgedBox(badge = { if (notificationCount > 0) Badge { AppText(notificationCount.toString()) } }) {
                             Icon(Icons.Outlined.Notifications, null)
                         }
                     }
@@ -790,8 +786,16 @@ private fun TopHeader(
                     modifier = Modifier
                         .size(if (isMobile) 32.dp else 36.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primaryContainer)
-                )
+                        .background(MaterialTheme.colorScheme.primaryContainer),
+                    contentAlignment = Alignment.Center
+                ) {
+                    AppText(
+                        text = schoolName.firstOrNull()?.toString() ?: "V",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
             }
         }
     }
@@ -811,7 +815,7 @@ private fun Footer(modifier: Modifier = Modifier) {
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 AppText("VidyaNet School ERP", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.outline)
-                AppText("v2.4.0", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                AppText("v1.0.0", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 TextButton(onClick = {}) { AppText("Support", style = MaterialTheme.typography.labelSmall) }

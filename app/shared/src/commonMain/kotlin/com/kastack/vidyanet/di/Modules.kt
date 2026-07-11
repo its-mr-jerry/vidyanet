@@ -6,15 +6,7 @@ import com.kastack.vidyanet.data.DatabaseManager
 import com.kastack.vidyanet.data.repositories.*
 import com.kastack.vidyanet.commonUi.viewModels.LoginViewModel
 import com.kastack.vidyanet.commonUi.viewModels.SplashViewModel
-import com.kastack.vidyanet.school.viewModels.SchoolDashboardViewModel
-import com.kastack.vidyanet.school.viewModels.SchoolSettingsViewModel
-import com.kastack.vidyanet.school.viewModels.AcademicSettingsViewModel
-import com.kastack.vidyanet.school.viewModels.RolesPermissionsViewModel
-import com.kastack.vidyanet.school.viewModels.UserManagementViewModel
-import com.kastack.vidyanet.school.viewModels.AuditLogsViewModel
-import com.kastack.vidyanet.school.viewModels.NotificationSettingsViewModel
-import com.kastack.vidyanet.school.viewModels.BackupRestoreViewModel
-import com.kastack.vidyanet.school.viewModels.IntegrationsViewModel
+import com.kastack.vidyanet.school.viewModels.*
 import com.kastack.vidyanet.superAdmin.viewModels.SchoolsViewModel
 import com.kastack.vidyanet.superAdmin.viewModels.SuperAdminDashboardViewModel
 import com.kastack.vidyanet.utils.PlatformUtils
@@ -61,6 +53,7 @@ val adminModule = module {
  * School specific module
  */
 val schoolModule = module {
+    viewModelOf(::SchoolAppViewModel)
     viewModelOf(::SchoolDashboardViewModel)
     viewModelOf(::SchoolSettingsViewModel)
     viewModelOf(::AcademicSettingsViewModel)
