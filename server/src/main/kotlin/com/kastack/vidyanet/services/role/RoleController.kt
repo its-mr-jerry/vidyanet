@@ -1,8 +1,6 @@
 package com.kastack.vidyanet.services.role
 
-import com.kastack.vidyanet.models.role.AssignRoleRequest
-import com.kastack.vidyanet.models.role.CreateRoleRequest
-import com.kastack.vidyanet.models.role.UpdateRoleRequest
+import com.kastack.vidyanet.models.role.*
 import com.kastack.vidyanet.validators.RoleValidator
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -78,4 +76,29 @@ class RoleController(private val roleService: RoleService = RoleService()) : Rol
         val userId = call.parameters["userId"]?.toLongOrNull() ?: return call.respond(HttpStatusCode.BadRequest, "Invalid User ID")
         call.respond(roleService.getUserRoles(userId))
     }
+
+    override suspend fun getRolePermissions(call: ApplicationCall) {
+        val id = call.parameters["id"]?.toLongOrNull() ?: return call.respond(HttpStatusCode.BadRequest, "Invalid ID")
+        try {
+            call.respond(roleService.getRolePermissions(id))
+        } catch (e: IllegalArgumentException) {
+            call.respond(HttpStatusCode.NotFound, e.message ?: "Role not found")
+        }
+    }
+
+    override suspend fun updateRolePermissions(call: ApplicationCall) {
+        val id = call.parameters["id"]?.toLongOrNull() ?: return call.respond(HttpStatusCode.BadRequest, "Invalid ID")
+        val request = call.receive<RolePermissionsDto>()
+        try {
+            roleService.updateRolePermissions(id, request)
+            call.respond(HttpStatusCode.OK, "Permissions updated")
+        } catch (e: IllegalArgumentException) {
+            call.respond(HttpStatusCode.BadRequest, e.message ?: "Update failed")
+        }
+    }
+
+    override suspend fun getAllPermissions(call: ApplicationCall) {
+        call.respond(roleService.getAllPermissions())
+    }
 }
+

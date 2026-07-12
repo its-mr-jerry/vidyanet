@@ -125,4 +125,8 @@ class AcademicSettingsViewModel(
     fun resetSaveSuccess() {
         _uiState.value = _uiState.value.copy(saveSuccess = false)
     }
+
+    fun clearError() {
+        _uiState.value = _uiState.value.copy(error = null)
+    }
 }

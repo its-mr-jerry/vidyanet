@@ -15,6 +15,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.kastack.vidyanet.commonUi.components.AppDialog
+import com.kastack.vidyanet.commonUi.components.AppDialogState
+import com.kastack.vidyanet.commonUi.components.AppDialogType
 import com.kastack.vidyanet.commonUi.components.AppText
 import com.kastack.vidyanet.models.schoolUser.AcademicSessionDto
 import com.kastack.vidyanet.models.schoolUser.HolidayDto
@@ -60,10 +63,18 @@ fun AcademicSettings(
         }
     }
 
-    LaunchedEffect(uiState.error) {
-        uiState.error?.let {
-            snackbarHostState.showSnackbar(it)
-        }
+    if (uiState.error != null) {
+        AppDialog(
+            state = AppDialogState(
+                isVisible = true,
+                type = AppDialogType.ERROR,
+                title = "Error",
+                message = uiState.error ?: "An unexpected error occurred",
+                confirmLabel = "OK",
+                onConfirm = { viewModel.clearError() }
+            ),
+            onDismissRequest = { viewModel.clearError() }
+        )
     }
 
     if (showAddSessionDialog) {

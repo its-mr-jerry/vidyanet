@@ -1,15 +1,14 @@
 package com.kastack.vidyanet.services.role
 
-import com.kastack.vidyanet.database.entities.RoleEntity
-import com.kastack.vidyanet.database.entities.UserRoleAssignmentEntity
-import com.kastack.vidyanet.database.entities.toDto
+import com.kastack.vidyanet.database.entities.*
+import com.kastack.vidyanet.database.tables.PermissionsTable
+import com.kastack.vidyanet.database.tables.RolePermissionsTable
 import com.kastack.vidyanet.database.tables.RolesTable
 import com.kastack.vidyanet.database.tables.UserRoleAssignmentsTable
 import com.kastack.vidyanet.database.toKotlinx
 import com.kastack.vidyanet.models.role.*
 import org.jetbrains.exposed.dao.id.EntityID
-import org.jetbrains.exposed.sql.SortOrder
-import org.jetbrains.exposed.sql.and
+import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
 import kotlin.time.Clock
 
@@ -51,6 +50,42 @@ class RoleService {
         true
     }
 
+    fun getRolePermissions(roleId: Long): RolePermissionsDto = transaction {
+        val role = RoleEntity.findById(roleId) ?: throw IllegalArgumentException("Role not found")
+        role.toPermissionsDto()
+    }
+
+    fun updateRolePermissions(roleId: Long, request: RolePermissionsDto) = transaction {
+        val role = RoleEntity.findById(roleId) ?: throw IllegalArgumentException("Role not found")
+        
+        val newPermissions = request.permissions.flatMap { modulePerm ->
+            modulePermissionsToEntities(modulePerm)
+        }
+        
+        role.permissions = SizedCollection(newPermissions)
+        role.updatedAt = Clock.System.now().toKotlinx()
+    }
+
+    private fun modulePermissionsToEntities(modulePerm: ModulePermissionDto): List<PermissionEntity> {
+        return modulePerm.actions.map { action ->
+            PermissionEntity.find {
+                (PermissionsTable.moduleName eq modulePerm.moduleName) and (PermissionsTable.action eq action.name)
+            }.singleOrNull() ?: PermissionEntity.new {
+                moduleName = modulePerm.moduleName
+                this.action = action.name
+            }
+        }
+    }
+
+    fun getAllPermissions(): List<ModulePermissionDto> = transaction {
+        PermissionEntity.all().groupBy { it.moduleName }.map { (moduleName, perms) ->
+            ModulePermissionDto(
+                moduleName = moduleName,
+                actions = perms.map { PermissionAction.valueOf(it.action) }.toSet()
+            )
+        }
+    }
+
     fun assignRole(request: AssignRoleRequest, assignedByUserId: Long): UserRoleDto = transaction {
         // Check if assignment already exists
         val existing = UserRoleAssignmentEntity.find {
@@ -80,3 +115,4 @@ class RoleService {
         UserRoleAssignmentEntity.find { UserRoleAssignmentsTable.userId eq userId }.map { it.toDto() }
     }
 }
+

@@ -53,6 +53,8 @@ fun configureDatabases(isTest: Boolean = false) {
             AcademicSettingsTable,
             AcademicSessionsTable,
             HolidaysTable,
+            PermissionsTable,
+            RolePermissionsTable,
             RolesTable,
             UsersTable,
             OtpsTable,
@@ -61,7 +63,29 @@ fun configureDatabases(isTest: Boolean = false) {
         )
         
         seedRoles()
+        seedPermissions()
         SchoolSeedScript.seedSchools()
+    }
+}
+
+private fun seedPermissions() {
+    if (PermissionsTable.selectAll().empty()) {
+        val modules = listOf(
+            "DASHBOARD", "ADMISSIONS", "STUDENTS", "PARENTS", "STAFF", 
+            "ACADEMICS", "ATTENDANCE", "FINANCE", "LIBRARY", "TRANSPORT", 
+            "INVENTORY", "COMMUNICATION", "REPORTS", "SETTINGS"
+        )
+        val actions = listOf("VIEW", "CREATE", "EDIT", "DELETE", "EXPORT")
+        
+        for (module in modules) {
+            for (action in actions) {
+                PermissionsTable.insert {
+                    it[moduleName] = module
+                    it[this.action] = action
+                    it[description] = "Can $action $module"
+                }
+            }
+        }
     }
 }
 

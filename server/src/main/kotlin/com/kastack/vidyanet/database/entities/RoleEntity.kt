@@ -1,5 +1,6 @@
 package com.kastack.vidyanet.database.entities
 
+import com.kastack.vidyanet.database.tables.RolePermissionsTable
 import com.kastack.vidyanet.database.tables.RolesTable
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
@@ -14,4 +15,6 @@ class RoleEntity(id: EntityID<Long>) : LongEntity(id) {
     var isSystemRole by RolesTable.isSystemRole
     var createdAt by RolesTable.createdAt
     var updatedAt by RolesTable.updatedAt
+
+    var permissions by PermissionEntity via RolePermissionsTable
 }

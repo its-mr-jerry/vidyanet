@@ -1,8 +1,7 @@
 package com.kastack.vidyanet.database.entities
 
 import com.kastack.vidyanet.models.user.UserDto
-import com.kastack.vidyanet.models.role.RoleDto
-import com.kastack.vidyanet.models.role.UserRoleDto
+import com.kastack.vidyanet.models.role.*
 import kotlinx.datetime.Instant
 
 fun UserEntity.toDto() = UserDto(
@@ -28,6 +27,22 @@ fun RoleEntity.toDto() = RoleDto(
     createdAt = createdAt,
     updatedAt = updatedAt
 )
+
+fun PermissionEntity.toDto() = PermissionAction.valueOf(action)
+
+fun RoleEntity.toPermissionsDto(): RolePermissionsDto {
+    val groupedPermissions = permissions.groupBy { it.moduleName }
+    val modulePermissions = groupedPermissions.map { (moduleName, permissions) ->
+        ModulePermissionDto(
+            moduleName = moduleName,
+            actions = permissions.map { PermissionAction.valueOf(it.action) }.toSet()
+        )
+    }
+    return RolePermissionsDto(
+        roleId = id.value,
+        permissions = modulePermissions
+    )
+}
 
 fun UserRoleAssignmentEntity.toDto() = UserRoleDto(
     id = id.value,

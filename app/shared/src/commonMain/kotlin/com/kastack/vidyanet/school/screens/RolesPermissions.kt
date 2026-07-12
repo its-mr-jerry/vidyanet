@@ -28,6 +28,7 @@ import com.kastack.vidyanet.school.components.SchoolSettingsHeader
 import com.kastack.vidyanet.school.viewModels.RolesPermissionsViewModel
 import com.kastack.vidyanet.theme.*
 import org.koin.compose.viewmodel.koinViewModel
+import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun RolesPermissions(
@@ -42,94 +43,100 @@ fun RolesPermissions(
             subtitle = "Manage user roles and define granular access across all modules.",
             breadcrumbs = listOf("Settings", "Roles & Permissions"),
             primaryAction = HeaderAction(
-                label = "Create New Role",
-                icon = Icons.Default.Add,
+                label = "Save Changes",
+                icon = Icons.Default.Save,
                 onClick = viewModel::savePermissions,
                 isLoading = uiState.isSaving
             )
         )
 
-        BoxWithConstraints {
-            if (maxWidth > 800.dp) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(24.dp),
-                    horizontalArrangement = Arrangement.spacedBy(24.dp)
-                ) {
-                    // Left Column: Role List
-                    Column(
-                        modifier = Modifier.weight(0.35f),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+        if (uiState.isLoading && uiState.roles.isEmpty()) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        } else {
+            BoxWithConstraints {
+                if (maxWidth > 800.dp) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(24.dp),
+                        horizontalArrangement = Arrangement.spacedBy(24.dp)
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                        // Left Column: Role List
+                        Column(
+                            modifier = Modifier.weight(0.35f),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
-                            AppText("System Roles", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                            IconButton(onClick = {}) {
-                                Icon(Icons.Default.FilterList, null, modifier = Modifier.size(20.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                AppText("System Roles", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                                IconButton(onClick = {}) {
+                                    Icon(Icons.Default.FilterList, null, modifier = Modifier.size(20.dp))
+                                }
+                            }
+
+                            LazyColumn(
+                                verticalArrangement = Arrangement.spacedBy(12.dp),
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                items(uiState.roles) { role ->
+                                    RoleCard(
+                                        role = role,
+                                        isSelected = uiState.selectedRole?.id == role.id,
+                                        onClick = { viewModel.selectRole(role) }
+                                    )
+                                }
                             }
                         }
 
-                        LazyColumn(
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
-                            modifier = Modifier.fillMaxSize()
+                        // Right Column: Permission Matrix
+                        Column(
+                            modifier = Modifier.weight(0.65f),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
-                            items(uiState.roles) { role ->
-                                RoleCard(
-                                    role = role,
-                                    isSelected = uiState.selectedRole?.id == role.id,
-                                    onClick = { viewModel.selectRole(role) }
-                                )
-                            }
+                            PermissionMatrix(
+                                selectedRoleName = uiState.selectedRole?.roleName ?: "",
+                                permissions = uiState.permissions,
+                                onToggle = viewModel::togglePermission
+                            )
                         }
                     }
-
-                    // Right Column: Permission Matrix
+                } else {
                     Column(
-                        modifier = Modifier.weight(0.65f),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(24.dp)
                     ) {
+                        // Role Selection (Horizontal on mobile?)
+                        AppText("System Roles", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        Row(
+                            modifier = Modifier.horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            uiState.roles.forEach { role ->
+                                Box(modifier = Modifier.width(280.dp)) {
+                                    RoleCard(
+                                        role = role,
+                                        isSelected = uiState.selectedRole?.id == role.id,
+                                        onClick = { viewModel.selectRole(role) }
+                                    )
+                                }
+                            }
+                        }
+
+                        // Permission Matrix (Full width)
                         PermissionMatrix(
                             selectedRoleName = uiState.selectedRole?.roleName ?: "",
                             permissions = uiState.permissions,
                             onToggle = viewModel::togglePermission
                         )
                     }
-                }
-            } else {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(24.dp)
-                ) {
-                    // Role Selection (Horizontal on mobile?)
-                    AppText("System Roles", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    Row(
-                        modifier = Modifier.horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        uiState.roles.forEach { role ->
-                            Box(modifier = Modifier.width(280.dp)) {
-                                RoleCard(
-                                    role = role,
-                                    isSelected = uiState.selectedRole?.id == role.id,
-                                    onClick = { viewModel.selectRole(role) }
-                                )
-                            }
-                        }
-                    }
-
-                    // Permission Matrix (Full width)
-                    PermissionMatrix(
-                        selectedRoleName = uiState.selectedRole?.roleName ?: "",
-                        permissions = uiState.permissions,
-                        onToggle = viewModel::togglePermission
-                    )
                 }
             }
         }
@@ -153,6 +160,10 @@ fun RolesPermissions(
                     Icon(Icons.Default.CheckCircle, null, tint = MaterialTheme.colorScheme.primaryContainer)
                     AppText("Permissions updated successfully", color = MaterialTheme.colorScheme.inverseOnSurface)
                 }
+            }
+            LaunchedEffect(Unit) {
+                kotlinx.coroutines.delay(3000.milliseconds)
+                viewModel.resetSaveSuccess()
             }
         }
     }
@@ -215,7 +226,7 @@ private fun RoleCard(
             }
             Spacer(Modifier.height(16.dp))
             AppText(role.roleName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            AppText("${(10..50).random()} Users Assigned", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            AppText("Managed granular permissions", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             
             if (isSelected) {
                 Spacer(Modifier.height(24.dp))
@@ -261,10 +272,6 @@ private fun PermissionMatrix(
                                 AppText("Permissions:", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                                 AppText(selectedRoleName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                             }
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                OutlinedButton(onClick = {}, modifier = Modifier.weight(1f), shape = RoundedCornerShape(8.dp), contentPadding = PaddingValues(0.dp)) { AppText("Discard", style = MaterialTheme.typography.labelSmall) }
-                                Button(onClick = {}, modifier = Modifier.weight(1f), shape = RoundedCornerShape(8.dp), contentPadding = PaddingValues(0.dp)) { AppText("Save", style = MaterialTheme.typography.labelSmall) }
-                            }
                         }
                     } else {
                         Row(
@@ -278,18 +285,6 @@ private fun PermissionMatrix(
                                     AppText(selectedRoleName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                                 }
                                 AppText("Select exactly what this role can see and do within each module.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    Icon(Icons.Default.History, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.outline)
-                                    AppText("Last edited 2d ago", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.outline)
-                                }
-                                OutlinedButton(onClick = {}, shape = RoundedCornerShape(8.dp)) {
-                                    AppText("Discard", style = MaterialTheme.typography.labelLarge)
-                                }
-                                Button(onClick = {}, shape = RoundedCornerShape(8.dp)) {
-                                    AppText("Save Changes", style = MaterialTheme.typography.labelLarge)
-                                }
                             }
                         }
                     }
@@ -345,14 +340,9 @@ private fun PermissionMatrix(
                             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                     Box(modifier = Modifier.size(6.dp).background(MaterialTheme.colorScheme.primary, CircleShape))
-                                    AppText("24 Active", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-                                }
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    Box(modifier = Modifier.size(6.dp).background(MaterialTheme.colorScheme.outline, CircleShape))
-                                    AppText("82 Granted", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                                    AppText("Active", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                                 }
                             }
-                            AppText("Reset to Defaults", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, modifier = Modifier.clickable { })
                         }
                     } else {
                         Row(
@@ -363,15 +353,10 @@ private fun PermissionMatrix(
                             Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     Box(modifier = Modifier.size(8.dp).background(MaterialTheme.colorScheme.primary, CircleShape))
-                                    AppText("24 Modules Active", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-                                }
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Box(modifier = Modifier.size(8.dp).background(MaterialTheme.colorScheme.outline, CircleShape))
-                                    AppText("82 Permissions Granted", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                    AppText("${permissions.count { it.actions.isNotEmpty() }} Modules Active", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                                 }
                             }
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                                AppText("Selected: All permissions for 'Student Records'", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 AppText("Reset to Defaults", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, modifier = Modifier.clickable { })
                             }
                         }
@@ -391,11 +376,11 @@ private fun PermissionMobileCard(
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Icon(
                 imageVector = when (permission.moduleName) {
-                    "Dashboard" -> Icons.Default.Dashboard
-                    "Student Records" -> Icons.Default.Group
-                    "Attendance" -> Icons.Default.CalendarMonth
-                    "Examinations" -> Icons.Default.Quiz
-                    "Library" -> Icons.AutoMirrored.Filled.LibraryBooks
+                    "DASHBOARD" -> Icons.Default.Dashboard
+                    "STUDENTS" -> Icons.Default.Group
+                    "ATTENDANCE" -> Icons.Default.CalendarMonth
+                    "EXAMINATIONS" -> Icons.Default.Quiz
+                    "LIBRARY" -> Icons.AutoMirrored.Filled.LibraryBooks
                     else -> Icons.Default.Settings
                 },
                 contentDescription = null,
@@ -411,7 +396,7 @@ private fun PermissionMobileCard(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             PermissionAction.entries.forEach { action ->
-                val isEnabled = !(permission.moduleName == "Dashboard" && (action == PermissionAction.CREATE || action == PermissionAction.EDIT || action == PermissionAction.DELETE))
+                val isEnabled = true
                 val isChecked = permission.actions.contains(action)
                 
                 Surface(
@@ -459,11 +444,11 @@ private fun PermissionRow(
         Row(modifier = Modifier.weight(0.35f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             Icon(
                 imageVector = when (permission.moduleName) {
-                    "Dashboard" -> Icons.Default.Dashboard
-                    "Student Records" -> Icons.Default.Group
-                    "Attendance" -> Icons.Default.CalendarMonth
-                    "Examinations" -> Icons.Default.Quiz
-                    "Library" -> Icons.AutoMirrored.Filled.LibraryBooks
+                    "DASHBOARD" -> Icons.Default.Dashboard
+                    "STUDENTS" -> Icons.Default.Group
+                    "ATTENDANCE" -> Icons.Default.CalendarMonth
+                    "EXAMINATIONS" -> Icons.Default.Quiz
+                    "LIBRARY" -> Icons.AutoMirrored.Filled.LibraryBooks
                     else -> Icons.Default.Settings
                 },
                 contentDescription = null,
@@ -480,7 +465,7 @@ private fun PermissionRow(
                 Checkbox(
                     checked = permission.actions.contains(action),
                     onCheckedChange = { onToggle(permission.moduleName, action) },
-                    enabled = !(permission.moduleName == "Dashboard" && (action == PermissionAction.CREATE || action == PermissionAction.EDIT || action == PermissionAction.DELETE))
+                    enabled = true
                 )
             }
         }

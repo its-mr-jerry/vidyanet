@@ -27,6 +27,7 @@ val coreModule = module {
     single<AuthRepository> { AuthRepositoryImpl(get()) }
     single<UserRepository> { UserRepositoryImpl(get(), get()) }
     single<SchoolRepository> { SchoolRepositoryImpl(get(), get()) }
+    single<RoleRepository> { RoleRepositoryImpl(get(), get()) }
 
     single { PlatformUtils() }
 }
