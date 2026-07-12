@@ -67,6 +67,11 @@ fun SchoolSettings(
     var workingHours by remember(uiState.settings) { mutableStateOf(uiState.settings?.workingHours ?: emptyList()) }
     var branches by remember(uiState.settings) { mutableStateOf(uiState.settings?.branches ?: emptyList()) }
 
+    var regNoError by remember { mutableStateOf<String?>(null) }
+    var mottoError by remember { mutableStateOf<String?>(null) }
+    var boardError by remember { mutableStateOf<String?>(null) }
+    var estDateError by remember { mutableStateOf<String?>(null) }
+
     val scope = rememberCoroutineScope()
     val imagePicker = rememberImagePicker(
         maxSizeMB = 1,
@@ -119,34 +124,42 @@ fun SchoolSettings(
                 title = "School Settings",
                 subtitle = "Manage your institution's profile, branding, and operational parameters.",
                 breadcrumbs = listOf("Settings", "School Settings"),
-                primaryAction = HeaderAction(
+                primaryAction = if (uiState.canEdit) HeaderAction(
                     label = "Save Changes",
                     icon = Icons.Default.Save,
                     onClick = { 
-                        viewModel.saveSettings(
-                            schoolId,
-                            UpdateSchoolSettingsRequest(
-                                registrationNumber = regNo,
-                                motto = motto,
-                                establishmentDate = estDate,
-                                affiliationBoard = board,
-                                primaryBrandColor = brandColor,
-                                logoBase64 = selectedLogoBytes?.let { Base64.encode(it) },
-                                isMaintenanceMode = maintenanceMode,
-                                workingHours = workingHours,
-                                branches = branches
-                            )
-                        ) 
+                        var hasError = false
+                        try { ValidationSchema.school.regNo.validate(regNo) } catch (e: Exception) { regNoError = e.message; hasError = true }
+                        try { ValidationSchema.school.motto.validate(motto) } catch (e: Exception) { mottoError = e.message; hasError = true }
+                        try { ValidationSchema.school.affiliationBoard.validate(board) } catch (e: Exception) { boardError = e.message; hasError = true }
+                        try { ValidationSchema.school.establishmentDate.validate(estDate) } catch (e: Exception) { estDateError = e.message; hasError = true }
+
+                        if (!hasError) {
+                            viewModel.saveSettings(
+                                schoolId,
+                                UpdateSchoolSettingsRequest(
+                                    registrationNumber = regNo,
+                                    motto = motto,
+                                    establishmentDate = estDate,
+                                    affiliationBoard = board,
+                                    primaryBrandColor = brandColor,
+                                    logoBase64 = selectedLogoBytes?.let { Base64.encode(it) },
+                                    isMaintenanceMode = maintenanceMode,
+                                    workingHours = workingHours,
+                                    branches = branches
+                                )
+                            ) 
+                        }
                     },
                     isLoading = uiState.isSaving
-                ),
-                secondaryAction = HeaderAction(
+                ) else null,
+                secondaryAction = if (uiState.canEdit) HeaderAction(
                     label = "Discard",
                     onClick = { 
                         viewModel.loadSettings(schoolId)
                         selectedLogoBytes = null
                     }
-                )
+                ) else null
             )
 
             Column(
@@ -159,19 +172,25 @@ fun SchoolSettings(
 
                 // Layout: Adaptive Bento Grid Style
                 BoxWithConstraints {
+                    val readOnly = !uiState.canEdit
                     if (maxWidth > 1000.dp) {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
                             Column(modifier = Modifier.weight(0.65f), verticalArrangement = Arrangement.spacedBy(24.dp)) {
                                 SchoolProfileSection(
                                     schoolName = schoolName,
                                     regNo = regNo,
-                                    onRegNoChange = { regNo = it },
+                                    onRegNoChange = { regNo = it; regNoError = null },
+                                    regNoError = regNoError,
                                     motto = motto,
-                                    onMottoChange = { motto = it },
+                                    onMottoChange = { motto = it; mottoError = null },
+                                    mottoError = mottoError,
                                     board = board,
-                                    onBoardChange = { board = it },
+                                    onBoardChange = { board = it; boardError = null },
+                                    boardError = boardError,
                                     estDate = estDate,
-                                    onEstDateChange = { estDate = it }
+                                    onEstDateChange = { estDate = it; estDateError = null },
+                                    estDateError = estDateError,
+                                    readOnly = readOnly
                                 )
                                 ContactInfoSection(
                                     email = email,
@@ -191,7 +210,8 @@ fun SchoolSettings(
                                     },
                                     onDeleteBranch = { index ->
                                         branches = branches.toMutableList().apply { removeAt(index) }
-                                    }
+                                    },
+                                    readOnly = readOnly
                                 )
                             }
                             Column(modifier = Modifier.weight(0.35f), verticalArrangement = Arrangement.spacedBy(24.dp)) {
@@ -199,13 +219,15 @@ fun SchoolSettings(
                                     brandColor = brandColor,
                                     logoUrl = logoUrl,
                                     selectedLogoBytes = selectedLogoBytes,
-                                    onPickLogo = imagePicker
+                                    onPickLogo = imagePicker,
+                                    readOnly = readOnly
                                 )
                                 WorkingHoursSection(
                                     hours = workingHours,
-                                    onHoursChange = { workingHours = it }
+                                    onHoursChange = { workingHours = it },
+                                    readOnly = readOnly
                                 )
-                                MaintenanceModeSection(maintenanceMode, onToggle = { maintenanceMode = it })
+                                MaintenanceModeSection(maintenanceMode, onToggle = { maintenanceMode = it }, readOnly = readOnly)
                             }
                         }
                     } else {
@@ -213,19 +235,25 @@ fun SchoolSettings(
                             SchoolProfileSection(
                                 schoolName = schoolName,
                                 regNo = regNo,
-                                onRegNoChange = { regNo = it },
+                                onRegNoChange = { regNo = it; regNoError = null },
+                                regNoError = regNoError,
                                 motto = motto,
-                                onMottoChange = { motto = it },
+                                onMottoChange = { motto = it; mottoError = null },
+                                mottoError = mottoError,
                                 board = board,
-                                onBoardChange = { board = it },
+                                onBoardChange = { board = it; boardError = null },
+                                boardError = boardError,
                                 estDate = estDate,
-                                onEstDateChange = { estDate = it }
+                                onEstDateChange = { estDate = it; estDateError = null },
+                                estDateError = estDateError,
+                                readOnly = readOnly
                             )
                             BrandingSection(
                                 brandColor = brandColor,
                                 logoUrl = logoUrl,
                                 selectedLogoBytes = selectedLogoBytes,
-                                onPickLogo = imagePicker
+                                onPickLogo = imagePicker,
+                                readOnly = readOnly
                             )
                             ContactInfoSection(
                                 email = email,
@@ -235,7 +263,8 @@ fun SchoolSettings(
                             )
                             WorkingHoursSection(
                                 hours = workingHours,
-                                onHoursChange = { workingHours = it }
+                                onHoursChange = { workingHours = it },
+                                readOnly = readOnly
                             )
                             BranchesSection(
                                 branches = branches,
@@ -249,9 +278,10 @@ fun SchoolSettings(
                                 },
                                 onDeleteBranch = { index ->
                                     branches = branches.toMutableList().apply { removeAt(index) }
-                                }
+                                },
+                                readOnly = readOnly
                             )
-                            MaintenanceModeSection(maintenanceMode, onToggle = { maintenanceMode = it })
+                            MaintenanceModeSection(maintenanceMode, onToggle = { maintenanceMode = it }, readOnly = readOnly)
                         }
                     }
                 }
@@ -301,12 +331,17 @@ private fun SchoolProfileSection(
     schoolName: String,
     regNo: String,
     onRegNoChange: (String) -> Unit,
+    regNoError: String?,
     motto: String,
     onMottoChange: (String) -> Unit,
+    mottoError: String?,
     board: String,
     onBoardChange: (String) -> Unit,
+    boardError: String?,
     estDate: String,
-    onEstDateChange: (String) -> Unit
+    onEstDateChange: (String) -> Unit,
+    estDateError: String?,
+    readOnly: Boolean
 ) {
     SettingsCard(
         title = "School Profile",
@@ -317,13 +352,13 @@ private fun SchoolProfileSection(
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 AppTextField(ValidationSchema.school.name, schoolName, {}, Modifier.weight(1f), readOnly = true)
-                AppTextField(com.kastack.vidyanet.validators.FieldSchema("Registration Number"), regNo, onRegNoChange, Modifier.weight(1f))
+                AppTextField(ValidationSchema.school.regNo, regNo, onRegNoChange, Modifier.weight(1f), readOnly = readOnly, error = regNoError)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                AppTextField(com.kastack.vidyanet.validators.FieldSchema("Affiliation Board"), board, onBoardChange, Modifier.weight(1f))
-                AppTextField(com.kastack.vidyanet.validators.FieldSchema("Establishment Date"), estDate, onEstDateChange, Modifier.weight(1f))
+                AppTextField(ValidationSchema.school.affiliationBoard, board, onBoardChange, Modifier.weight(1f), readOnly = readOnly, error = boardError)
+                AppTextField(ValidationSchema.school.establishmentDate, estDate, onEstDateChange, Modifier.weight(1f), readOnly = readOnly, error = estDateError)
             }
-            AppTextArea(com.kastack.vidyanet.validators.FieldSchema("School Motto"), motto, onMottoChange)
+            AppTextArea(ValidationSchema.school.motto, motto, onMottoChange, readOnly = readOnly, error = mottoError)
         }
     }
 }
@@ -333,7 +368,8 @@ private fun BrandingSection(
     brandColor: String,
     logoUrl: String?,
     selectedLogoBytes: ByteArray?,
-    onPickLogo: () -> Unit
+    onPickLogo: () -> Unit,
+    readOnly: Boolean
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
         SettingsCard(
@@ -347,7 +383,7 @@ private fun BrandingSection(
                     modifier = Modifier
                         .fillMaxWidth()
                         .border(2.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
-                        .clickable { onPickLogo() }
+                        .then(if (!readOnly) Modifier.clickable { onPickLogo() } else Modifier)
                         .padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -376,13 +412,15 @@ private fun BrandingSection(
                             Icon(Icons.Default.School, null, modifier = Modifier.size(40.dp), tint = MaterialTheme.colorScheme.primary)
                         }
                     }
-                    AppText(
-                        text = if (selectedLogoBytes != null || !logoUrl.isNullOrBlank()) "Change Logo" else "Upload Square Logo",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    AppText("SVG, PNG up to 1MB", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                    if (!readOnly) {
+                        AppText(
+                            text = if (selectedLogoBytes != null || !logoUrl.isNullOrBlank()) "Change Logo" else "Upload Square Logo",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        AppText("SVG, PNG up to 1MB", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                    }
                 }
 
                 Column {
@@ -402,27 +440,6 @@ private fun BrandingSection(
                             AppText(brandColor, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
                         }
                     }
-                }
-            }
-        }
-
-        // Pro Tip
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            color = MaterialTheme.colorScheme.primary
-        ) {
-            Column(modifier = Modifier.padding(24.dp)) {
-                AppText("Pro Tip", style = MaterialTheme.typography.titleMedium, color = Color.White, fontWeight = FontWeight.Bold)
-                AppText(
-                    "Updating your brand color will automatically reflect across all student portals and invoice templates within 15 minutes.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.9f),
-                    modifier = Modifier.padding(vertical = 8.dp)
-                )
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { }) {
-                    AppText("Learn about themes", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = Color.White)
-                    Icon(Icons.AutoMirrored.Filled.ArrowForward, null, tint = Color.White, modifier = Modifier.size(16.dp).padding(start = 4.dp))
                 }
             }
         }
@@ -456,7 +473,8 @@ private fun ContactInfoSection(
 @Composable
 private fun WorkingHoursSection(
     hours: List<com.kastack.vidyanet.models.schoolUser.WorkingHourDto>,
-    onHoursChange: (List<com.kastack.vidyanet.models.schoolUser.WorkingHourDto>) -> Unit
+    onHoursChange: (List<com.kastack.vidyanet.models.schoolUser.WorkingHourDto>) -> Unit,
+    readOnly: Boolean
 ) {
     SettingsCard(
         title = "Working Hours",
@@ -488,7 +506,8 @@ private fun WorkingHoursSection(
                             .copy(openingTime = start, closingTime = end)
                         if (index != -1) newHours[index] = updated else newHours.add(updated)
                         onHoursChange(newHours)
-                    }
+                    },
+                    readOnly = readOnly
                 )
             }
         }
@@ -502,7 +521,8 @@ private fun WorkingDayRow(
     end: String,
     isOpen: Boolean,
     onToggle: (Boolean) -> Unit,
-    onTimeChange: (String, String) -> Unit
+    onTimeChange: (String, String) -> Unit,
+    readOnly: Boolean
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -518,7 +538,7 @@ private fun WorkingDayRow(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(if (isCompact) 4.dp else 12.dp)) {
-                    Checkbox(checked = isOpen, onCheckedChange = onToggle)
+                    Checkbox(checked = isOpen, onCheckedChange = onToggle, enabled = !readOnly)
                     AppText(day.lowercase().replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, modifier = Modifier.widthIn(min = if (isCompact) 60.dp else 80.dp))
                 }
                 if (isOpen) {
@@ -534,9 +554,9 @@ private fun WorkingDayRow(
                         val endHour = endTime.getOrNull(0)?.toIntOrNull() ?: 16
                         val endMin = endTime.getOrNull(1)?.toIntOrNull() ?: 0
 
-                        BasicTimeField(start) { showStartPicker = true }
+                        BasicTimeField(start, enabled = !readOnly) { if (!readOnly) showStartPicker = true }
                         AppText("—", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.outlineVariant)
-                        BasicTimeField(end) { showEndPicker = true }
+                        BasicTimeField(end, enabled = !readOnly) { if (!readOnly) showEndPicker = true }
 
                         if (showStartPicker) {
                             AppTimePickerDialog(
@@ -573,12 +593,13 @@ private fun WorkingDayRow(
 }
 
 @Composable
-private fun BasicTimeField(value: String, onClick: () -> Unit) {
+private fun BasicTimeField(value: String, enabled: Boolean = true, onClick: () -> Unit) {
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(8.dp),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        color = MaterialTheme.colorScheme.surfaceContainerLow
+        color = if (enabled) MaterialTheme.colorScheme.surfaceContainerLow else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
+        enabled = enabled
     ) {
         Box(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
@@ -588,7 +609,7 @@ private fun BasicTimeField(value: String, onClick: () -> Unit) {
                 text = value,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
+                color = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
             )
         }
     }
@@ -599,7 +620,8 @@ private fun BranchesSection(
     branches: List<com.kastack.vidyanet.models.schoolUser.SchoolBranchDto>,
     onAddBranch: () -> Unit,
     onEditBranch: (Int, com.kastack.vidyanet.models.schoolUser.SchoolBranchDto) -> Unit,
-    onDeleteBranch: (Int) -> Unit
+    onDeleteBranch: (Int) -> Unit,
+    readOnly: Boolean
 ) {
     SettingsCard(
         title = "School Branches",
@@ -617,12 +639,14 @@ private fun BranchesSection(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         AppText("Manage branches", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
-                        AdaptiveIconButton(
-                            label = "Add Branch",
-                            icon = Icons.Default.AddLocationAlt,
-                            onClick = onAddBranch,
-                            isMobile = true
-                        )
+                        if (!readOnly) {
+                            AdaptiveIconButton(
+                                label = "Add Branch",
+                                icon = Icons.Default.AddLocationAlt,
+                                onClick = onAddBranch,
+                                isMobile = true
+                            )
+                        }
                     }
                 } else {
                     Row(
@@ -633,12 +657,14 @@ private fun BranchesSection(
                         Column(modifier = Modifier.weight(1f)) {
                             AppText("Manage physical campuses and administrative units", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        AdaptiveIconButton(
-                            label = "Add Branch",
-                            icon = Icons.Default.AddLocationAlt,
-                            onClick = onAddBranch,
-                            isMobile = false
-                        )
+                        if (!readOnly) {
+                            AdaptiveIconButton(
+                                label = "Add Branch",
+                                icon = Icons.Default.AddLocationAlt,
+                                onClick = onAddBranch,
+                                isMobile = false
+                            )
+                        }
                     }
                 }
             }
@@ -657,13 +683,9 @@ private fun BranchesSection(
                                     contact = branch.contactPerson, 
                                     isActive = branch.status == "ACTIVE",
                                     onEdit = { onEditBranch(index, branch) },
-                                    onDelete = { onDeleteBranch(index) }
+                                    onDelete = { onDeleteBranch(index) },
+                                    readOnly = readOnly
                                 )
-                            }
-                            if (branches.isEmpty()) {
-                                Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                                    AppText("No branches added yet.", color = MaterialTheme.colorScheme.outline)
-                                }
                             }
                         }
                     } else {
@@ -689,15 +711,10 @@ private fun BranchesSection(
                                     contact = branch.contactPerson, 
                                     isActive = branch.status == "ACTIVE",
                                     onEdit = { onEditBranch(index, branch) },
-                                    onDelete = { onDeleteBranch(index) }
+                                    onDelete = { onDeleteBranch(index) },
+                                    readOnly = readOnly
                                 )
                                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                            }
-                            
-                            if (branches.isEmpty()) {
-                                Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                                    AppText("No branches added yet.", color = MaterialTheme.colorScheme.outline)
-                                }
                             }
                         }
                     }
@@ -715,7 +732,8 @@ private fun BranchMobileCard(
     contact: String, 
     isActive: Boolean, 
     onEdit: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    readOnly: Boolean
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -746,11 +764,13 @@ private fun BranchMobileCard(
                 }
             }
             
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-            
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onEdit) { Icon(Icons.Default.Edit, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary) }
-                IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, null, modifier = Modifier.size(20.dp), tint = AcademicError) }
+            if (!readOnly) {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onEdit) { Icon(Icons.Default.Edit, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary) }
+                    IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, null, modifier = Modifier.size(20.dp), tint = AcademicError) }
+                }
             }
         }
     }
@@ -764,7 +784,8 @@ private fun BranchRow(
     contact: String, 
     isActive: Boolean, 
     onEdit: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    readOnly: Boolean
 ) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(12.dp),
@@ -782,8 +803,10 @@ private fun BranchRow(
             StatusBadge(text = if (isActive) "Active" else "Inactive", color = statusColor)
         }
         Row(Modifier.weight(0.8f), horizontalArrangement = Arrangement.End) {
-            IconButton(onClick = onEdit) { Icon(Icons.Default.Edit, null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.outline) }
-            IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, null, modifier = Modifier.size(18.dp), tint = AcademicError) }
+            if (!readOnly) {
+                IconButton(onClick = onEdit) { Icon(Icons.Default.Edit, null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.outline) }
+                IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, null, modifier = Modifier.size(18.dp), tint = AcademicError) }
+            }
         }
     }
 }
@@ -919,7 +942,7 @@ private fun BranchDialog(
 }
 
 @Composable
-private fun MaintenanceModeSection(enabled: Boolean, onToggle: (Boolean) -> Unit) {
+private fun MaintenanceModeSection(enabled: Boolean, onToggle: (Boolean) -> Unit, readOnly: Boolean) {
     SettingsCard(
         title = "Maintenance Mode",
         icon = Icons.Default.Build,
@@ -935,7 +958,7 @@ private fun MaintenanceModeSection(enabled: Boolean, onToggle: (Boolean) -> Unit
                 AppText("Maintenance Mode", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
                 AppText("Restricts access to the portal while performing system updates or maintenance.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Switch(checked = enabled, onCheckedChange = onToggle)
+            Switch(checked = enabled, onCheckedChange = onToggle, enabled = !readOnly)
         }
     }
 }

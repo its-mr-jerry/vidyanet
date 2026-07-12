@@ -13,6 +13,7 @@ interface UserRepository {
         search: String? = null,
         userType: UserType? = null,
         status: UserStatus? = null,
+        roleId: Long? = null,
         schoolId: Long? = null,
         page: Int = 1,
         pageSize: Int = 10
@@ -47,6 +48,7 @@ class UserRepositoryImpl(
         search: String?,
         userType: UserType?,
         status: UserStatus?,
+        roleId: Long?,
         schoolId: Long?,
         page: Int,
         pageSize: Int
@@ -56,6 +58,7 @@ class UserRepositoryImpl(
             search?.let { parameter("search", it) }
             userType?.let { parameter("userType", it.name) }
             status?.let { parameter("status", it.name) }
+            roleId?.let { parameter("roleId", it) }
             schoolId?.let { parameter("schoolId", it) }
             parameter("page", page)
             parameter("pageSize", pageSize)

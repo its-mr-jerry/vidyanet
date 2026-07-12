@@ -18,6 +18,7 @@ class UserController(private val userService: UserService = UserService()) : Use
         val search = call.request.queryParameters["search"]
         val userType = call.request.queryParameters["userType"]?.let { UserType.valueOf(it) }
         val status = call.request.queryParameters["status"]?.let { UserStatus.valueOf(it) }
+        val roleId = call.request.queryParameters["roleId"]?.toLongOrNull()
         val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
         val pageSize = call.request.queryParameters["pageSize"]?.toIntOrNull() ?: 10
         
@@ -25,12 +26,12 @@ class UserController(private val userService: UserService = UserService()) : Use
         val principal = call.principal<JWTPrincipal>()
         val currentUserType = principal?.payload?.getClaim("userType")?.asString()?.let { UserType.valueOf(it) }
         val schoolId = if (currentUserType == UserType.SCHOOL_USER) {
-            principal.payload.getClaim("schoolId")?.asLong()
+            principal.payload?.getClaim("schoolId")?.asLong()
         } else {
             call.request.queryParameters["schoolId"]?.toLongOrNull()
         }
 
-        call.respond(userService.getAllUsers(search, userType, status, schoolId, page, pageSize))
+        call.respond(userService.getAllUsers(search, userType, status, roleId, schoolId, page, pageSize))
     }
 
     override suspend fun getUserById(call: ApplicationCall) {
@@ -47,6 +48,7 @@ class UserController(private val userService: UserService = UserService()) : Use
 
     override suspend fun createUser(call: ApplicationCall) {
         val request = call.receive<CreateUserRequest>()
+        UserValidator.validateCreate(request)
         
         val principal = call.principal<JWTPrincipal>()
         val currentUserType = principal?.payload?.getClaim("userType")?.asString()

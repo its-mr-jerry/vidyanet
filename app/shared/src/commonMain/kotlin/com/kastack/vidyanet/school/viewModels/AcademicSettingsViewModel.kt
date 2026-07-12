@@ -2,6 +2,7 @@ package com.kastack.vidyanet.school.viewModels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.kastack.vidyanet.core.GlobalStore
 import com.kastack.vidyanet.data.repositories.SchoolRepository
 import com.kastack.vidyanet.models.schoolUser.AcademicSessionDto
 import com.kastack.vidyanet.models.schoolUser.AcademicSettingsDto
@@ -18,11 +19,13 @@ data class AcademicSettingsUiState(
     val error: String? = null,
     val isSaving: Boolean = false,
     val saveSuccess: Boolean = false,
+    val canEdit: Boolean = false,
     val settings: AcademicSettingsDto? = null
 )
 
 class AcademicSettingsViewModel(
-    private val schoolRepository: SchoolRepository
+    private val schoolRepository: SchoolRepository,
+    private val globalStore: GlobalStore
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(AcademicSettingsUiState())
     val uiState: StateFlow<AcademicSettingsUiState> = _uiState.asStateFlow()
@@ -30,7 +33,11 @@ class AcademicSettingsViewModel(
     fun loadSettings(schoolId: String) {
         val id = schoolId.toLongOrNull() ?: return
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            _uiState.value = _uiState.value.copy(
+                isLoading = true, 
+                error = null,
+                canEdit = globalStore.hasPermission("ACADEMICS", "EDIT")
+            )
             schoolRepository.getAcademicSettings(id)
                 .onSuccess { settings ->
                     _uiState.value = _uiState.value.copy(isLoading = false, settings = settings)

@@ -1,0 +1,26 @@
+# VidyaNet Project Rules
+
+## General Principles
+- **DRY (Don't Repeat Yourself)**: Avoid duplicating logic. Centralize common functionality (e.g., security checks in plugins).
+- **SOLID Principles**: Ensure code is maintainable, scalable, and testable.
+- **Consistency**: Adhere to the project's visual theme and existing architectural patterns.
+
+## Backend Development
+- **Architecture**: Follow the Routing -> Controller -> Service -> Table/Entity structure.
+- **Security**:
+    - Every request involving school or user data must be isolated using centralized ownership checks.
+    - Use `{schoolId}` and `{userId}` in paths to trigger automatic multi-tenancy protection in the authorization plugin.
+- **Validation**: Every new API must be gated by a validator in the `:core` module.
+- **Database**:
+    - Every schema change must have a corresponding Flyway migration in `server/src/main/resources/db/migration/`.
+- **Error Handling**: APIs must return generic messages (e.g., "Internal Server Error", "Not Authorized"). **Never** expose database exceptions (e.g., PSQLException) or stack traces.
+
+## Core & Shared Logic
+- **Standard Types**: Always use `kotlin.time.Instant` instead of the deprecated `kotlinx.datetime.Instant`.
+- **Validation Schema**: All field constraints must be centrally defined in `ValidationSchema.kt`.
+
+## Frontend Development
+- **Permissions**: Always verify user permissions via `GlobalStore.hasPermission()` before rendering interactive UI elements (Save buttons, Delete icons, etc.).
+- **Input Fields**: All inputs must use `AppTextField`/`AppTextArea` and be linked to a `ValidationSchema` entry.
+- **Error Feedback**: API and validation errors must be displayed using the `AppDialog` component for better visibility and consistency.
+- **Integration**: Maintain the Repository -> ViewModel -> Screen flow.

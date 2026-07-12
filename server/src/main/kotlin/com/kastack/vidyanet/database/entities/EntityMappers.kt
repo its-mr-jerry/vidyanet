@@ -15,6 +15,7 @@ fun UserEntity.toDto() = UserDto(
     status = status,
     isPhoneVerified = isPhoneVerified,
     roles = roles.map { it.roleName },
+    permissions = roles.flatMap { it.permissions }.map { "${it.moduleName}_${it.action}" }.distinct(),
     createdAt = createdAt.toKotlin(),
     updatedAt = updatedAt.toKotlin(),
     lastLoginAt = lastLoginAt?.toKotlin(),

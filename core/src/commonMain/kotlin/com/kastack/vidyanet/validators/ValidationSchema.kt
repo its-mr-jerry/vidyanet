@@ -65,12 +65,19 @@ object ValidationSchema {
     val branch = BranchSchema
     val academic = AcademicSchema
     val session = AcademicSessionSchema
+    val user = UserSchema
+    val role = RoleSchema
 }
 
 object SchoolSchema {
     val name = FieldSchema("School name", maxLength = 150)
+    val regNo = FieldSchema("Registration number", maxLength = 50, isRequired = false)
+    val motto = FieldSchema("School motto", maxLength = 255, isRequired = false)
+    val affiliationBoard = FieldSchema("Affiliation board", maxLength = 100, isRequired = false)
+    val establishmentDate = FieldSchema("Establishment date", maxLength = 20, isRequired = false)
     val phone = FieldSchema("Phone number", maxLength = 10, inputType = AppInputType.PHONE, isExactLength = true)
     val email = FieldSchema("Email address", maxLength = 150, inputType = AppInputType.EMAIL, isRequired = false)
+    val website = FieldSchema("Website", maxLength = 255, isRequired = false)
     val address = FieldSchema("Address", maxLength = 255)
     val city = FieldSchema("City", maxLength = 100)
     val state = FieldSchema("State", maxLength = 100)
@@ -103,4 +110,16 @@ object AcademicSessionSchema {
     val name = FieldSchema("Session name", maxLength = 100)
     val startDate = FieldSchema("Start date", maxLength = 10)
     val endDate = FieldSchema("End date", maxLength = 10)
+}
+
+object UserSchema {
+    val fullName = FieldSchema("Full name", maxLength = 100)
+    val phone = FieldSchema("Phone number", maxLength = 10, inputType = AppInputType.PHONE, isExactLength = true)
+    val email = FieldSchema("Email address", maxLength = 150, inputType = AppInputType.EMAIL, isRequired = false)
+}
+
+object RoleSchema {
+    val roleCode = FieldSchema("Role code", maxLength = 50)
+    val roleName = FieldSchema("Role name", maxLength = 100)
+    val description = FieldSchema("Description", maxLength = 255, isRequired = false)
 }

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kastack.vidyanet.commonUi.components.AppDialogState
 import com.kastack.vidyanet.commonUi.components.AppDialogType
+import com.kastack.vidyanet.core.GlobalStore
 import com.kastack.vidyanet.data.repositories.SchoolRepository
 import com.kastack.vidyanet.models.schoolUser.SchoolDto
 import com.kastack.vidyanet.models.schoolUser.SchoolSettingsDto
@@ -22,11 +23,13 @@ data class SchoolSettingsUiState(
     val error: String? = null,
     val isSaving: Boolean = false,
     val saveSuccess: Boolean = false,
+    val canEdit: Boolean = false,
     val dialogState: AppDialogState = AppDialogState()
 )
 
 class SchoolSettingsViewModel(
-    private val schoolRepository: SchoolRepository
+    private val schoolRepository: SchoolRepository,
+    private val globalStore: GlobalStore
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(SchoolSettingsUiState())
     val uiState: StateFlow<SchoolSettingsUiState> = _uiState.asStateFlow()
@@ -34,7 +37,11 @@ class SchoolSettingsViewModel(
     fun loadSettings(schoolId: String) {
         val id = schoolId.toLongOrNull() ?: return
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            _uiState.value = _uiState.value.copy(
+                isLoading = true, 
+                error = null,
+                canEdit = globalStore.hasPermission("SETTINGS", "EDIT")
+            )
             
             val schoolResult = schoolRepository.getSchoolById(id)
             val settingsResult = schoolRepository.getSchoolSettings(id)

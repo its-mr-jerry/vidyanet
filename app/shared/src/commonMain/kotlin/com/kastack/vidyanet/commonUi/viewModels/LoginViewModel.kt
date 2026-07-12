@@ -2,6 +2,7 @@ package com.kastack.vidyanet.commonUi.viewModels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.kastack.vidyanet.core.GlobalStore
 import com.kastack.vidyanet.data.DatabaseManager
 import com.kastack.vidyanet.data.repositories.AuthRepository
 import com.kastack.vidyanet.models.auth.LoginRequest
@@ -13,7 +14,8 @@ import kotlinx.coroutines.launch
 
 class LoginViewModel(
     private val authRepository: AuthRepository,
-    private val databaseManager: DatabaseManager
+    private val databaseManager: DatabaseManager,
+    private val globalStore: GlobalStore
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<LoginUiState>(LoginUiState.InputPhone)
@@ -78,6 +80,7 @@ class LoginViewModel(
             authRepository.verifyOtp(VerifyOtpRequest(_phone.value, _otp.value))
                 .onSuccess { response ->
                     databaseManager.saveString("auth_token", response.token)
+                    globalStore.updateCurrentUser(response.user)
                     _loginSuccess.value = true
                 }
                 .onFailure {

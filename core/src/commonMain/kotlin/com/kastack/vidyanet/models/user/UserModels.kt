@@ -14,6 +14,7 @@ data class UserDto(
     val status: UserStatus,
     val isPhoneVerified: Boolean,
     val roles: List<String> = emptyList(),
+    val permissions: List<String> = emptyList(), // Format: MODULE_ACTION
     val createdAt: Instant,
     val updatedAt: Instant,
     val lastLoginAt: Instant? = null,

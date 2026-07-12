@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import com.kastack.vidyanet.commonUi.components.AppDialog
 import com.kastack.vidyanet.commonUi.components.AppDialogState
 import com.kastack.vidyanet.commonUi.components.AppDialogType
+import com.kastack.vidyanet.commonUi.components.AppTextField
 import com.kastack.vidyanet.commonUi.components.AppText
 import com.kastack.vidyanet.models.schoolUser.AcademicSessionDto
 import com.kastack.vidyanet.models.schoolUser.HolidayDto
@@ -28,6 +29,7 @@ import com.kastack.vidyanet.school.components.SchoolSettingsHeader
 import com.kastack.vidyanet.school.components.StatusBadge
 import com.kastack.vidyanet.school.viewModels.AcademicSettingsViewModel
 import com.kastack.vidyanet.theme.*
+import com.kastack.vidyanet.validators.ValidationSchema
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -48,6 +50,11 @@ fun AcademicSettings(
     var minPromotionPercentage by remember(uiState.settings) { mutableStateOf(uiState.settings?.minPromotionPercentage?.toFloat() ?: 40f) }
     var minPromotionAttendance by remember(uiState.settings) { mutableStateOf(uiState.settings?.minPromotionAttendance?.toString() ?: "75") }
     var requireNoDues by remember(uiState.settings) { mutableStateOf(uiState.settings?.requireNoDues ?: true) }
+
+    var passMarksError by remember { mutableStateOf<String?>(null) }
+    var gpaDecimalsError by remember { mutableStateOf<String?>(null) }
+    var lateThresholdError by remember { mutableStateOf<String?>(null) }
+    var minPromotionAttendanceError by remember { mutableStateOf<String?>(null) }
 
     var showAddSessionDialog by remember { mutableStateOf(false) }
     var showAddHolidayDialog by remember { mutableStateOf(false) }
@@ -107,30 +114,37 @@ fun AcademicSettings(
                 title = "Academic Settings",
                 subtitle = "Configure academic structure, grading systems, and school policies to match your institution's specific requirements.",
                 breadcrumbs = listOf("Settings", "Academic Settings"),
-                primaryAction = HeaderAction(
+                primaryAction = if (uiState.canEdit) HeaderAction(
                     label = "Save Changes",
                     onClick = { 
-                        viewModel.saveSettings(
-                            schoolId,
-                            UpdateAcademicSettingsRequest(
-                                gradingScale = gradingScale,
-                                passMarks = passMarks.toIntOrNull(),
-                                gpaDecimals = gpaDecimals.toIntOrNull(),
-                                isWeightedGpa = isWeightedGpa,
-                                attendanceMode = attendanceMode,
-                                lateThresholdMinutes = lateThreshold.toIntOrNull(),
-                                minPromotionPercentage = minPromotionPercentage.toInt(),
-                                minPromotionAttendance = minPromotionAttendance.toIntOrNull(),
-                                requireNoDues = requireNoDues
-                            )
-                        ) 
+                        var hasError = false
+                        try { ValidationSchema.academic.passMarks.validate(passMarks) } catch (e: Exception) { passMarksError = e.message; hasError = true }
+                        try { ValidationSchema.academic.lateThreshold.validate(lateThreshold) } catch (e: Exception) { lateThresholdError = e.message; hasError = true }
+                        try { ValidationSchema.academic.minPromotionAttendance.validate(minPromotionAttendance) } catch (e: Exception) { minPromotionAttendanceError = e.message; hasError = true }
+
+                        if (!hasError) {
+                            viewModel.saveSettings(
+                                schoolId,
+                                UpdateAcademicSettingsRequest(
+                                    gradingScale = gradingScale,
+                                    passMarks = passMarks.toIntOrNull(),
+                                    gpaDecimals = gpaDecimals.toIntOrNull(),
+                                    isWeightedGpa = isWeightedGpa,
+                                    attendanceMode = attendanceMode,
+                                    lateThresholdMinutes = lateThreshold.toIntOrNull(),
+                                    minPromotionPercentage = minPromotionPercentage.toInt(),
+                                    minPromotionAttendance = minPromotionAttendance.toIntOrNull(),
+                                    requireNoDues = requireNoDues
+                                )
+                            ) 
+                        }
                     },
                     isLoading = uiState.isSaving
-                ),
-                secondaryAction = HeaderAction(
+                ) else null,
+                secondaryAction = if (uiState.canEdit) HeaderAction(
                     label = "Cancel",
                     onClick = { viewModel.loadSettings(schoolId) }
-                )
+                ) else null
             )
 
             if (uiState.isLoading) {
@@ -147,6 +161,7 @@ fun AcademicSettings(
                 ) {
                     // Main Content: Adaptive Bento Grid Style
                     BoxWithConstraints {
+                        val readOnly = !uiState.canEdit
                         if (maxWidth > 1000.dp) {
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
                                 // Left Column
@@ -154,15 +169,18 @@ fun AcademicSettings(
                                     AcademicYearSection(
                                         sessions = uiState.settings?.academicSessions ?: emptyList(),
                                         onAddSession = { showAddSessionDialog = true },
-                                        onDeleteSession = { viewModel.deleteSession(schoolId, it) }
+                                        onDeleteSession = { viewModel.deleteSession(schoolId, it) },
+                                        readOnly = readOnly
                                     )
                                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
                                         AttendanceRulesSection(
                                             attendanceMode = attendanceMode,
                                             onAttendanceModeChange = { attendanceMode = it },
                                             lateThreshold = lateThreshold,
-                                            onLateThresholdChange = { lateThreshold = it },
-                                            modifier = Modifier.weight(1f)
+                                            onLateThresholdChange = { lateThreshold = it; lateThresholdError = null },
+                                            lateThresholdError = lateThresholdError,
+                                            modifier = Modifier.weight(1f),
+                                            readOnly = readOnly
                                         )
                                         PromotionRulesSection(
                                             minPercentage = minPromotionPercentage,
@@ -170,8 +188,10 @@ fun AcademicSettings(
                                             requireNoDues = requireNoDues,
                                             onRequireNoDuesChange = { requireNoDues = it },
                                             minAttendance = minPromotionAttendance,
-                                            onMinAttendanceChange = { minPromotionAttendance = it },
-                                            modifier = Modifier.weight(1f)
+                                            onMinAttendanceChange = { minPromotionAttendance = it; minPromotionAttendanceError = null },
+                                            minAttendanceError = minPromotionAttendanceError,
+                                            modifier = Modifier.weight(1f),
+                                            readOnly = readOnly
                                         )
                                     }
                                 }
@@ -181,16 +201,20 @@ fun AcademicSettings(
                                         gradingScale = gradingScale,
                                         onGradingScaleChange = { gradingScale = it },
                                         passMarks = passMarks,
-                                        onPassMarksChange = { passMarks = it },
+                                        onPassMarksChange = { passMarks = it; passMarksError = null },
+                                        passMarksError = passMarksError,
                                         gpaDecimals = gpaDecimals,
-                                        onGpaDecimalsChange = { gpaDecimals = it },
+                                        onGpaDecimalsChange = { gpaDecimals = it; gpaDecimalsError = null },
+                                        gpaDecimalsError = gpaDecimalsError,
                                         isWeightedGpa = isWeightedGpa,
-                                        onIsWeightedGpaChange = { isWeightedGpa = it }
+                                        onIsWeightedGpaChange = { isWeightedGpa = it },
+                                        readOnly = readOnly
                                     )
                                     HolidaysCalendarSection(
                                         holidays = uiState.settings?.holidays ?: emptyList(),
                                         onAddHoliday = { showAddHolidayDialog = true },
-                                        onDeleteHoliday = { viewModel.deleteHoliday(schoolId, it) }
+                                        onDeleteHoliday = { viewModel.deleteHoliday(schoolId, it) },
+                                        readOnly = readOnly
                                     )
                                 }
                             }
@@ -199,23 +223,29 @@ fun AcademicSettings(
                                 AcademicYearSection(
                                     sessions = uiState.settings?.academicSessions ?: emptyList(),
                                     onAddSession = { showAddSessionDialog = true },
-                                    onDeleteSession = { viewModel.deleteSession(schoolId, it) }
+                                    onDeleteSession = { viewModel.deleteSession(schoolId, it) },
+                                    readOnly = readOnly
                                 )
                                 GradingSystemSection(
                                     gradingScale = gradingScale,
                                     onGradingScaleChange = { gradingScale = it },
                                     passMarks = passMarks,
-                                    onPassMarksChange = { passMarks = it },
+                                    onPassMarksChange = { passMarks = it; passMarksError = null },
+                                    passMarksError = passMarksError,
                                     gpaDecimals = gpaDecimals,
-                                    onGpaDecimalsChange = { gpaDecimals = it },
+                                    onGpaDecimalsChange = { gpaDecimals = it; gpaDecimalsError = null },
+                                    gpaDecimalsError = gpaDecimalsError,
                                     isWeightedGpa = isWeightedGpa,
-                                    onIsWeightedGpaChange = { isWeightedGpa = it }
+                                    onIsWeightedGpaChange = { isWeightedGpa = it },
+                                    readOnly = readOnly
                                 )
                                 AttendanceRulesSection(
                                     attendanceMode = attendanceMode,
                                     onAttendanceModeChange = { attendanceMode = it },
                                     lateThreshold = lateThreshold,
-                                    onLateThresholdChange = { lateThreshold = it }
+                                    onLateThresholdChange = { lateThreshold = it; lateThresholdError = null },
+                                    lateThresholdError = lateThresholdError,
+                                    readOnly = readOnly
                                 )
                                 PromotionRulesSection(
                                     minPercentage = minPromotionPercentage,
@@ -223,12 +253,15 @@ fun AcademicSettings(
                                     requireNoDues = requireNoDues,
                                     onRequireNoDuesChange = { requireNoDues = it },
                                     minAttendance = minPromotionAttendance,
-                                    onMinAttendanceChange = { minPromotionAttendance = it }
+                                    onMinAttendanceChange = { minPromotionAttendance = it; minPromotionAttendanceError = null },
+                                    minAttendanceError = minPromotionAttendanceError,
+                                    readOnly = readOnly
                                 )
                                 HolidaysCalendarSection(
                                     holidays = uiState.settings?.holidays ?: emptyList(),
                                     onAddHoliday = { showAddHolidayDialog = true },
-                                    onDeleteHoliday = { viewModel.deleteHoliday(schoolId, it) }
+                                    onDeleteHoliday = { viewModel.deleteHoliday(schoolId, it) },
+                                    readOnly = readOnly
                                 )
                             }
                         }
@@ -245,7 +278,8 @@ fun AcademicSettings(
 private fun AcademicYearSection(
     sessions: List<AcademicSessionDto>,
     onAddSession: () -> Unit,
-    onDeleteSession: (Long) -> Unit
+    onDeleteSession: (Long) -> Unit,
+    readOnly: Boolean
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         BoxWithConstraints {
@@ -260,12 +294,14 @@ private fun AcademicYearSection(
                         Icon(Icons.Default.CalendarMonth, null, tint = MaterialTheme.colorScheme.primary)
                         AppText("Academic Year", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                     }
-                    AdaptiveIconButton(
-                        label = "Add New Session",
-                        icon = Icons.Default.Add,
-                        onClick = onAddSession,
-                        isMobile = isCompact
-                    )
+                    if (!readOnly) {
+                        AdaptiveIconButton(
+                            label = "Add New Session",
+                            icon = Icons.Default.Add,
+                            onClick = onAddSession,
+                            isMobile = isCompact
+                        )
+                    }
                 }
             } else {
                 Row(
@@ -277,17 +313,19 @@ private fun AcademicYearSection(
                         Icon(Icons.Default.CalendarMonth, null, tint = MaterialTheme.colorScheme.primary)
                         AppText("Academic Year Management", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                     }
-                    TextButton(onClick = onAddSession) {
-                        Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(4.dp))
-                        AppText("Add New Session", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                    if (!readOnly) {
+                        TextButton(onClick = onAddSession) {
+                            Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(4.dp))
+                            AppText("Add New Session", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             }
         }
 
         sessions.forEach { session ->
-            AcademicSessionCard(session, onDelete = { session.id?.let { onDeleteSession(it) } })
+            AcademicSessionCard(session, onDelete = { session.id?.let { onDeleteSession(it) } }, readOnly = readOnly)
         }
         
         if (sessions.isEmpty()) {
@@ -306,7 +344,7 @@ private fun AcademicYearSection(
 }
 
 @Composable
-private fun AcademicSessionCard(session: AcademicSessionDto, onDelete: () -> Unit) {
+private fun AcademicSessionCard(session: AcademicSessionDto, onDelete: () -> Unit, readOnly: Boolean) {
     val isCurrent = session.status == "CURRENT"
     
     Surface(
@@ -326,8 +364,10 @@ private fun AcademicSessionCard(session: AcademicSessionDto, onDelete: () -> Uni
                             AppText(session.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
                             AppText("${session.startDate} — ${session.endDate}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        IconButton(onClick = onDelete) {
-                            Icon(Icons.Default.Delete, null, tint = AcademicError, modifier = Modifier.size(20.dp))
+                        if (!readOnly) {
+                            IconButton(onClick = onDelete) {
+                                Icon(Icons.Default.Delete, null, tint = AcademicError, modifier = Modifier.size(20.dp))
+                            }
                         }
                     }
                     Row(
@@ -354,8 +394,10 @@ private fun AcademicSessionCard(session: AcademicSessionDto, onDelete: () -> Uni
                     
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                         SessionStatusBadge(session.status)
-                        IconButton(onClick = onDelete) {
-                            Icon(Icons.Default.Delete, null, tint = AcademicError, modifier = Modifier.size(20.dp))
+                        if (!readOnly) {
+                            IconButton(onClick = onDelete) {
+                                Icon(Icons.Default.Delete, null, tint = AcademicError, modifier = Modifier.size(20.dp))
+                            }
                         }
                     }
                 }
@@ -404,10 +446,13 @@ private fun GradingSystemSection(
     onGradingScaleChange: (String) -> Unit,
     passMarks: String,
     onPassMarksChange: (String) -> Unit,
+    passMarksError: String?,
     gpaDecimals: String,
     onGpaDecimalsChange: (String) -> Unit,
+    gpaDecimalsError: String?,
     isWeightedGpa: Boolean,
-    onIsWeightedGpaChange: (Boolean) -> Unit
+    onIsWeightedGpaChange: (Boolean) -> Unit,
+    readOnly: Boolean
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -425,19 +470,19 @@ private fun GradingSystemSection(
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     AppText("Primary Grading Scale", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        GradingScaleButton("Letter", "A, B, C...", gradingScale == "LETTER", Modifier.weight(1f)) { onGradingScaleChange("LETTER") }
-                        GradingScaleButton("GPA", "4.0 Scale", gradingScale == "GPA", Modifier.weight(1f)) { onGradingScaleChange("GPA") }
-                        GradingScaleButton("Percent", "0 - 100%", gradingScale == "PERCENT", Modifier.weight(1f)) { onGradingScaleChange("PERCENT") }
+                        GradingScaleButton("Letter", "A, B, C...", gradingScale == "LETTER", Modifier.weight(1f), enabled = !readOnly) { onGradingScaleChange("LETTER") }
+                        GradingScaleButton("GPA", "4.0 Scale", gradingScale == "GPA", Modifier.weight(1f), enabled = !readOnly) { onGradingScaleChange("GPA") }
+                        GradingScaleButton("Percent", "0 - 100%", gradingScale == "PERCENT", Modifier.weight(1f), enabled = !readOnly) { onGradingScaleChange("PERCENT") }
                     }
                 }
                 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    SettingsInputField("Pass Marks (%)", passMarks, onPassMarksChange, Modifier.weight(1f))
-                    SettingsDropdownField("GPA Decimals", "$gpaDecimals Places", Modifier.weight(1f)) { onGpaDecimalsChange("2") }
+                    AppTextField(ValidationSchema.academic.passMarks, passMarks, onPassMarksChange, Modifier.weight(1f), readOnly = readOnly, error = passMarksError)
+                    SettingsDropdownField("GPA Decimals", "$gpaDecimals Places", Modifier.weight(1f), onClick = { if (!readOnly) onGpaDecimalsChange("2") })
                 }
                 
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Checkbox(checked = isWeightedGpa, onCheckedChange = onIsWeightedGpaChange)
+                    Checkbox(checked = isWeightedGpa, onCheckedChange = onIsWeightedGpaChange, enabled = !readOnly)
                     AppText("Enable Weighted GPA Calculation", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
                 }
             }
@@ -446,13 +491,14 @@ private fun GradingSystemSection(
 }
 
 @Composable
-private fun GradingScaleButton(label: String, subLabel: String, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
+private fun GradingScaleButton(label: String, subLabel: String, selected: Boolean, modifier: Modifier, enabled: Boolean = true, onClick: () -> Unit) {
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(8.dp),
         border = BorderStroke(2.dp, if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant),
         color = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.05f) else Color.Transparent,
-        onClick = onClick
+        onClick = { if (enabled) onClick() },
+        enabled = enabled
     ) {
         Column(
             modifier = Modifier.padding(12.dp),
@@ -470,7 +516,9 @@ private fun AttendanceRulesSection(
     onAttendanceModeChange: (String) -> Unit,
     lateThreshold: String,
     onLateThresholdChange: (String) -> Unit,
-    modifier: Modifier = Modifier
+    lateThresholdError: String?,
+    modifier: Modifier = Modifier,
+    readOnly: Boolean
 ) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -486,29 +534,18 @@ private fun AttendanceRulesSection(
         ) {
             Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(24.dp)) {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    AttendanceRuleRow("Daily Attendance", "Mark once per day", attendanceMode == "DAILY") { onAttendanceModeChange("DAILY") }
-                    AttendanceRuleRow("Subject-wise", "Per lecture session", attendanceMode == "SUBJECT_WISE") { onAttendanceModeChange("SUBJECT_WISE") }
+                    AttendanceRuleRow("Daily Attendance", "Mark once per day", attendanceMode == "DAILY", enabled = !readOnly) { onAttendanceModeChange("DAILY") }
+                    AttendanceRuleRow("Subject-wise", "Per lecture session", attendanceMode == "SUBJECT_WISE", enabled = !readOnly) { onAttendanceModeChange("SUBJECT_WISE") }
                 }
                 
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    AppText("Late Threshold (Mins)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        OutlinedTextField(
-                            value = lateThreshold,
-                            onValueChange = onLateThresholdChange,
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(8.dp),
-                            textStyle = MaterialTheme.typography.bodyMedium
-                        )
-                        Box(
-                            modifier = Modifier
-                                .size(44.dp)
-                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), RoundedCornerShape(8.dp)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(Icons.Default.NotificationsActive, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-                        }
-                    }
+                    AppTextField(
+                        schema = ValidationSchema.academic.lateThreshold,
+                        value = lateThreshold,
+                        onValueChange = onLateThresholdChange,
+                        error = lateThresholdError,
+                        readOnly = readOnly
+                    )
                     AppText("Triggers SMS to parents after threshold.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic)
                 }
             }
@@ -517,21 +554,21 @@ private fun AttendanceRulesSection(
 }
 
 @Composable
-private fun AttendanceRuleRow(title: String, subtitle: String, active: Boolean, onClick: () -> Unit) {
+private fun AttendanceRuleRow(title: String, subtitle: String, active: Boolean, enabled: Boolean = true, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
-            .clickable { onClick() }
+            .then(if (enabled) Modifier.clickable { onClick() } else Modifier)
             .padding(8.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column {
-            AppText(title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+            AppText(title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = if (enabled) Color.Unspecified else MaterialTheme.colorScheme.outline)
             AppText(subtitle, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        RadioButton(selected = active, onClick = onClick)
+        RadioButton(selected = active, onClick = if (enabled) onClick else null, enabled = enabled)
     }
 }
 
@@ -539,7 +576,8 @@ private fun AttendanceRuleRow(title: String, subtitle: String, active: Boolean, 
 private fun HolidaysCalendarSection(
     holidays: List<HolidayDto>,
     onAddHoliday: () -> Unit,
-    onDeleteHoliday: (Long) -> Unit
+    onDeleteHoliday: (Long) -> Unit,
+    readOnly: Boolean
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Row(
@@ -551,10 +589,12 @@ private fun HolidaysCalendarSection(
                 Icon(Icons.Default.BedtimeOff, null, tint = MaterialTheme.colorScheme.primary)
                 AppText("Holidays & Calendar", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             }
-            TextButton(onClick = onAddHoliday) {
-                Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(4.dp))
-                AppText("Add Holiday", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+            if (!readOnly) {
+                TextButton(onClick = onAddHoliday) {
+                    Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(4.dp))
+                    AppText("Add Holiday", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                }
             }
         }
         
@@ -598,8 +638,10 @@ private fun HolidaysCalendarSection(
                                         AppText(holiday.date, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
                                 }
-                                IconButton(onClick = { holiday.id?.let { onDeleteHoliday(it) } }) {
-                                    Icon(Icons.Default.Delete, null, tint = AcademicError, modifier = Modifier.size(20.dp))
+                                if (!readOnly) {
+                                    IconButton(onClick = { holiday.id?.let { onDeleteHoliday(it) } }) {
+                                        Icon(Icons.Default.Delete, null, tint = AcademicError, modifier = Modifier.size(20.dp))
+                                    }
                                 }
                             }
                         }
@@ -670,7 +712,9 @@ private fun PromotionRulesSection(
     onRequireNoDuesChange: (Boolean) -> Unit,
     minAttendance: String,
     onMinAttendanceChange: (String) -> Unit,
-    modifier: Modifier = Modifier
+    minAttendanceError: String?,
+    modifier: Modifier = Modifier,
+    readOnly: Boolean
 ) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -700,7 +744,8 @@ private fun PromotionRulesSection(
                     AppText("Min. Overall Percentage", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Slider(
                         value = minPercentage / 100f, 
-                        onValueChange = { onMinPercentageChange(it * 100f) },
+                        onValueChange = { if (!readOnly) onMinPercentageChange(it * 100f) },
+                        enabled = !readOnly,
                         colors = SliderDefaults.colors(thumbColor = MaterialTheme.colorScheme.primary, activeTrackColor = MaterialTheme.colorScheme.primary)
                     )
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -712,14 +757,17 @@ private fun PromotionRulesSection(
                 
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Checkbox(checked = requireNoDues, onCheckedChange = onRequireNoDuesChange)
+                        Checkbox(checked = requireNoDues, onCheckedChange = onRequireNoDuesChange, enabled = !readOnly)
                         AppText("Require No Dues Clearance", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
                     }
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        val attendanceChecked = (minAttendance.toIntOrNull() ?: 0) > 0
-                        Checkbox(checked = attendanceChecked, onCheckedChange = { if (it) onMinAttendanceChange("75") else onMinAttendanceChange("0") })
-                        AppText("Min. Attendance ($minAttendance%)", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
-                    }
+                    
+                    AppTextField(
+                        schema = ValidationSchema.academic.minPromotionAttendance,
+                        value = minAttendance,
+                        onValueChange = onMinAttendanceChange,
+                        error = minAttendanceError,
+                        readOnly = readOnly
+                    )
                 }
             }
         }
@@ -727,20 +775,10 @@ private fun PromotionRulesSection(
 }
 
 @Composable
-private fun SettingsInputField(label: String, value: String, onValueChange: (String) -> Unit, modifier: Modifier = Modifier) {
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        AppText(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        OutlinedTextField(
-            value = value,
-            onValueChange = onValueChange,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(8.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                unfocusedContainerColor = Color(0xFFF8FAFC),
-                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
-            ),
-            textStyle = MaterialTheme.typography.bodyMedium
-        )
+private fun SummaryItem(label: String, count: Int) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        AppText(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        AppText(count.toString(), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
     }
 }
 

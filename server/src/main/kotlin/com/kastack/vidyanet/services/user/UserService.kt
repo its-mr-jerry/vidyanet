@@ -23,11 +23,18 @@ class UserService {
         search: String? = null,
         userType: UserType? = null,
         status: UserStatus? = null,
+        roleId: Long? = null,
         schoolId: Long? = null,
         page: Int = 1,
         pageSize: Int = 10
     ): PagedResponse<UserDto> = transaction {
         val query = UsersTable.selectAll()
+
+        roleId?.let { rid ->
+            query.andWhere {
+                exists(UserRoleAssignmentsTable.selectAll().where { (UserRoleAssignmentsTable.userId eq UsersTable.id) and (UserRoleAssignmentsTable.roleId eq rid) })
+            }
+        }
 
         search?.let { s ->
             val searchLower = "%${s.lowercase()}%"

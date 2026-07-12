@@ -97,7 +97,17 @@ private fun seedRoles() {
             Triple("TEACHER", "Teacher", "Access to classroom management and student data"),
             Triple("STUDENT", "Student", "Access to learning materials and own records"),
             Triple("PARENT", "Parent", "Access to their children's records"),
-            Triple("ACCOUNTANT", "Accountant", "Access to financial records and fee management")
+            Triple("ACCOUNTANT", "Accountant", "Access to financial records and fee management"),
+            Triple("LIBRARIAN", "Librarian", "Manage library books and records"),
+            Triple("TRANSPORT_MANAGER", "Transport Manager", "Manage vehicles and routes"),
+            Triple("INVENTORY_MANAGER", "Inventory Manager", "Manage assets and stocks"),
+            Triple("RECEPTIONIST", "Receptionist", "Front desk management"),
+            Triple("CLERK", "Clerk", "General administrative tasks"),
+            Triple("ADMISSION_OFFICER", "Admission Officer", "Manage student admissions and enquiries"),
+            Triple("HR_MANAGER", "HR Manager", "Manage staff, payroll, and recruitment"),
+            Triple("EXAM_CONTROLLER", "Exam Controller", "Manage examinations and results"),
+            Triple("ACADEMIC_COORDINATOR", "Academic Coordinator", "Manage curriculum and timetable"),
+            Triple("FINANCE_OFFICER", "Finance Officer", "Strategic financial planning and oversight")
         )
         
         for ((code, name, desc) in defaultRoles) {

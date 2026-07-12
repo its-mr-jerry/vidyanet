@@ -18,6 +18,7 @@ import com.kastack.vidyanet.commonUi.components.AppDialog
 import com.kastack.vidyanet.commonUi.components.AppDialogState
 import com.kastack.vidyanet.commonUi.components.AppDialogType
 import com.kastack.vidyanet.commonUi.components.AppPagination
+import com.kastack.vidyanet.commonUi.components.AppTextField
 import com.kastack.vidyanet.commonUi.components.AppText
 import com.kastack.vidyanet.models.user.UserStatus
 import com.kastack.vidyanet.school.components.HeaderAction
@@ -28,6 +29,7 @@ import com.kastack.vidyanet.school.viewModels.UserManagementViewModel
 import com.kastack.vidyanet.school.viewModels.UserUiModel
 import com.kastack.vidyanet.theme.AcademicError
 import com.kastack.vidyanet.theme.AcademicSuccess
+import com.kastack.vidyanet.validators.ValidationSchema
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -73,16 +75,16 @@ fun UserManagement(
             title = "User Management",
             subtitle = "Manage staff, teacher, and administrator accounts and access levels.",
             breadcrumbs = listOf("Settings", "User Management"),
-            primaryAction = HeaderAction(
+            primaryAction = if (uiState.canEdit) HeaderAction(
                 label = "Invite User",
                 icon = Icons.Default.Add,
                 onClick = { showInviteDialog = true }
-            ),
-            secondaryAction = HeaderAction(
+            ) else null,
+            secondaryAction = if (uiState.canEdit) HeaderAction(
                 label = "Bulk Invite",
                 icon = Icons.Default.UploadFile,
                 onClick = { /* Bulk logic */ }
-            )
+            ) else null
         )
 
         Column(
@@ -95,7 +97,12 @@ fun UserManagement(
             // Filter Bar
             FilterBar(
                 searchQuery = uiState.searchQuery,
-                onSearchChange = viewModel::onSearchQueryChanged
+                onSearchChange = viewModel::onSearchQueryChanged,
+                roles = uiState.roles,
+                selectedRoleId = uiState.selectedRoleId,
+                onRoleChange = viewModel::onRoleFilterChanged,
+                selectedStatus = uiState.selectedStatus,
+                onStatusChange = viewModel::onStatusFilterChanged
             )
 
             BoxWithConstraints {
@@ -111,7 +118,8 @@ fun UserManagement(
                                 onPageChange = viewModel::onPageChanged,
                                 onRowsPerPageChange = viewModel::onRowsPerPageChanged,
                                 onToggleStatus = viewModel::toggleUserStatus,
-                                onDelete = viewModel::deleteUser
+                                onDelete = viewModel::deleteUser,
+                                canEdit = uiState.canEdit
                             )
                         }
 
@@ -131,7 +139,8 @@ fun UserManagement(
                             onPageChange = viewModel::onPageChanged,
                             onRowsPerPageChange = viewModel::onRowsPerPageChanged,
                             onToggleStatus = viewModel::toggleUserStatus,
-                            onDelete = viewModel::deleteUser
+                            onDelete = viewModel::deleteUser,
+                            canEdit = uiState.canEdit
                         )
                         PendingInvitesSection(uiState.pendingInvites)
                         RolesSummaryCard(uiState.roles)
@@ -146,7 +155,12 @@ fun UserManagement(
 @Composable
 private fun FilterBar(
     searchQuery: String,
-    onSearchChange: (String) -> Unit
+    onSearchChange: (String) -> Unit,
+    roles: List<com.kastack.vidyanet.models.role.RoleDto>,
+    selectedRoleId: Long?,
+    onRoleChange: (Long?) -> Unit,
+    selectedStatus: UserStatus?,
+    onStatusChange: (UserStatus?) -> Unit
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -173,14 +187,39 @@ private fun FilterBar(
                 singleLine = true
             )
             
-            FilterDropdown("Role: All")
-            FilterDropdown("Status: All")
+            var roleMenuExpanded by remember { mutableStateOf(false) }
+            Box {
+                FilterDropdown(
+                    label = "Role: ${roles.find { it.id == selectedRoleId }?.roleName ?: "All"}",
+                    onClick = { roleMenuExpanded = true }
+                )
+                DropdownMenu(expanded = roleMenuExpanded, onDismissRequest = { roleMenuExpanded = false }) {
+                    DropdownMenuItem(text = { Text("All Roles") }, onClick = { onRoleChange(null); roleMenuExpanded = false })
+                    roles.forEach { role ->
+                        DropdownMenuItem(text = { Text(role.roleName) }, onClick = { onRoleChange(role.id); roleMenuExpanded = false })
+                    }
+                }
+            }
+
+            var statusMenuExpanded by remember { mutableStateOf(false) }
+            Box {
+                FilterDropdown(
+                    label = "Status: ${selectedStatus?.name ?: "All"}",
+                    onClick = { statusMenuExpanded = true }
+                )
+                DropdownMenu(expanded = statusMenuExpanded, onDismissRequest = { statusMenuExpanded = false }) {
+                    DropdownMenuItem(text = { Text("All Status") }, onClick = { onStatusChange(null); statusMenuExpanded = false })
+                    UserStatus.entries.forEach { status ->
+                        DropdownMenuItem(text = { Text(status.name) }, onClick = { onStatusChange(status); statusMenuExpanded = false })
+                    }
+                }
+            }
             
             IconButton(
-                onClick = {},
+                onClick = { onSearchChange(""); onRoleChange(null); onStatusChange(null) },
                 modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp))
             ) {
-                Icon(Icons.Default.Tune, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                Icon(Icons.Default.Refresh, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             
             VerticalDivider(modifier = Modifier.height(32.dp), color = MaterialTheme.colorScheme.outlineVariant)
@@ -195,12 +234,12 @@ private fun FilterBar(
 }
 
 @Composable
-private fun FilterDropdown(label: String) {
+private fun FilterDropdown(label: String, onClick: () -> Unit) {
     Surface(
         shape = RoundedCornerShape(8.dp),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         color = MaterialTheme.colorScheme.surfaceContainerLow,
-        onClick = {}
+        onClick = onClick
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
@@ -222,7 +261,8 @@ private fun UserTable(
     onPageChange: (Int) -> Unit,
     onRowsPerPageChange: (Int) -> Unit,
     onToggleStatus: (UserUiModel) -> Unit,
-    onDelete: (Long) -> Unit
+    onDelete: (Long) -> Unit,
+    canEdit: Boolean
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -253,7 +293,7 @@ private fun UserTable(
                 if (isMobile) {
                     Column(modifier = Modifier.fillMaxWidth()) {
                         users.forEach { user ->
-                            UserMobileCard(user, onToggleStatus, onDelete)
+                            UserMobileCard(user, onToggleStatus, onDelete, canEdit)
                             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                         }
                     }
@@ -276,7 +316,7 @@ private fun UserTable(
                             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                             
                             users.forEach { user ->
-                                UserTableRow(user, onToggleStatus, onDelete)
+                                UserTableRow(user, onToggleStatus, onDelete, canEdit)
                                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                             }
                         }
@@ -300,7 +340,8 @@ private fun UserTable(
 private fun UserMobileCard(
     user: UserUiModel,
     onToggleStatus: (UserUiModel) -> Unit,
-    onDelete: (Long) -> Unit
+    onDelete: (Long) -> Unit,
+    canEdit: Boolean
 ) {
     Column(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -337,9 +378,13 @@ private fun UserMobileCard(
         }
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-            IconButton(onClick = {}) { Icon(Icons.Default.LockReset, null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) }
-            IconButton(onClick = { onToggleStatus(user) }) { Icon(if (user.status == UserStatus.ACTIVE) Icons.Default.PersonOff else Icons.Default.Check, null, modifier = Modifier.size(18.dp), tint = if (user.status == UserStatus.ACTIVE) AcademicError else MaterialTheme.colorScheme.primary) }
-            IconButton(onClick = { onDelete(user.id) }) { Icon(Icons.Default.Delete, null, modifier = Modifier.size(18.dp), tint = AcademicError) }
+            if (canEdit) {
+                IconButton(onClick = {}) { Icon(Icons.Default.LockReset, null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) }
+                IconButton(onClick = { onToggleStatus(user) }) { Icon(if (user.status == UserStatus.ACTIVE) Icons.Default.PersonOff else Icons.Default.Check, null, modifier = Modifier.size(18.dp), tint = if (user.status == UserStatus.ACTIVE) AcademicError else MaterialTheme.colorScheme.primary) }
+                IconButton(onClick = { onDelete(user.id) }) { Icon(Icons.Default.Delete, null, modifier = Modifier.size(18.dp), tint = AcademicError) }
+            } else {
+                IconButton(onClick = {}) { Icon(Icons.Default.Visibility, null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) }
+            }
         }
     }
 }
@@ -348,7 +393,8 @@ private fun UserMobileCard(
 private fun UserTableRow(
     user: UserUiModel,
     onToggleStatus: (UserUiModel) -> Unit,
-    onDelete: (Long) -> Unit
+    onDelete: (Long) -> Unit,
+    canEdit: Boolean
 ) {
     Row(
         modifier = Modifier
@@ -390,9 +436,13 @@ private fun UserTableRow(
         }
         
         Row(modifier = Modifier.width(100.dp), horizontalArrangement = Arrangement.End) {
-            IconButton(onClick = {}) { Icon(Icons.Default.LockReset, null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) }
-            IconButton(onClick = { onToggleStatus(user) }) { Icon(if (user.status == UserStatus.ACTIVE) Icons.Default.PersonOff else Icons.Default.Check, null, modifier = Modifier.size(18.dp), tint = if (user.status == UserStatus.ACTIVE) AcademicError else MaterialTheme.colorScheme.primary) }
-            IconButton(onClick = { onDelete(user.id) }) { Icon(Icons.Default.Delete, null, modifier = Modifier.size(18.dp), tint = AcademicError) }
+            if (canEdit) {
+                IconButton(onClick = {}) { Icon(Icons.Default.LockReset, null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) }
+                IconButton(onClick = { onToggleStatus(user) }) { Icon(if (user.status == UserStatus.ACTIVE) Icons.Default.PersonOff else Icons.Default.Check, null, modifier = Modifier.size(18.dp), tint = if (user.status == UserStatus.ACTIVE) AcademicError else MaterialTheme.colorScheme.primary) }
+                IconButton(onClick = { onDelete(user.id) }) { Icon(Icons.Default.Delete, null, modifier = Modifier.size(18.dp), tint = AcademicError) }
+            } else {
+                IconButton(onClick = {}) { Icon(Icons.Default.Visibility, null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) }
+            }
         }
     }
 }
@@ -510,31 +560,55 @@ private fun InviteUserDialog(
     var name by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
-    var selectedRoleId by remember { mutableStateOf<Long?>(null) }
+    val selectedRoleIds = remember { mutableStateListOf<Long>() }
 
     androidx.compose.material3.AlertDialog(
         onDismissRequest = onDismiss,
         title = { AppText("Invite User", fontWeight = FontWeight.Bold) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                OutlinedTextField(value = name, onValueChange = { name = it }, label = { AppText("Full Name") })
-                OutlinedTextField(value = phone, onValueChange = { phone = it }, label = { AppText("Phone Number") })
-                OutlinedTextField(value = email, onValueChange = { email = it }, label = { AppText("Email") })
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                AppTextField(
+                    schema = ValidationSchema.user.fullName,
+                    value = name,
+                    onValueChange = { name = it },
+                )
+                AppTextField(
+                    schema = ValidationSchema.user.phone,
+                    value = phone,
+                    onValueChange = { phone = it },
+                )
+                AppTextField(
+                    schema = ValidationSchema.user.email,
+                    value = email,
+                    onValueChange = { email = it },
+                )
                 
-                AppText("Assign Role", style = MaterialTheme.typography.labelSmall)
+                AppText("Assign Roles (Multiple Allowed)", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                 roles.forEach { role ->
                     Row(
-                        modifier = Modifier.fillMaxWidth().clickable { selectedRoleId = role.id },
+                        modifier = Modifier.fillMaxWidth().clickable { 
+                            if (selectedRoleIds.contains(role.id)) selectedRoleIds.remove(role.id)
+                            else selectedRoleIds.add(role.id)
+                        },
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        androidx.compose.material3.RadioButton(selected = selectedRoleId == role.id, onClick = { selectedRoleId = role.id })
+                        Checkbox(
+                            checked = selectedRoleIds.contains(role.id),
+                            onCheckedChange = { 
+                                if (it) selectedRoleIds.add(role.id)
+                                else selectedRoleIds.remove(role.id)
+                            }
+                        )
                         AppText(role.roleName)
                     }
                 }
             }
         },
         confirmButton = {
-            Button(onClick = { if (name.isNotBlank() && phone.isNotBlank() && selectedRoleId != null) onInvite(name, phone, email, listOf(selectedRoleId!!)) }) {
+            Button(onClick = { if (name.isNotBlank() && phone.isNotBlank() && selectedRoleIds.isNotEmpty()) onInvite(name, phone, email, selectedRoleIds.toList()) }) {
                 AppText("Invite")
             }
         },

@@ -4,10 +4,12 @@ package com.kastack.vidyanet.school.viewModels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.kastack.vidyanet.core.GlobalStore
 import com.kastack.vidyanet.data.repositories.RoleRepository
 import com.kastack.vidyanet.data.repositories.UserRepository
 import com.kastack.vidyanet.models.user.*
 import com.kastack.vidyanet.models.role.RoleDto
+import com.kastack.vidyanet.validators.UserValidator
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -31,12 +33,15 @@ data class UserManagementUiState(
     val isLoading: Boolean = false,
     val isSaving: Boolean = false,
     val saveSuccess: Boolean = false,
+    val canEdit: Boolean = false,
     val error: String? = null,
     val totalUsers: Int = 0,
     val currentPage: Int = 1,
     val rowsPerPage: Int = 10,
     val pendingInvites: List<PendingInvite> = emptyList(),
-    val searchQuery: String = ""
+    val searchQuery: String = "",
+    val selectedRoleId: Long? = null,
+    val selectedStatus: UserStatus? = null
 )
 
 data class PendingInvite(
@@ -47,7 +52,8 @@ data class PendingInvite(
 
 class UserManagementViewModel(
     private val userRepository: UserRepository,
-    private val roleRepository: RoleRepository
+    private val roleRepository: RoleRepository,
+    private val globalStore: GlobalStore
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(UserManagementUiState())
     val uiState: StateFlow<UserManagementUiState> = _uiState.asStateFlow()
@@ -55,11 +61,12 @@ class UserManagementViewModel(
 
     fun init(schoolId: String) {
         currentSchoolId = schoolId
+        _uiState.value = _uiState.value.copy(canEdit = globalStore.hasPermission("STAFF", "EDIT"))
         loadData()
     }
 
     private fun loadData() {
-        val schoolId = currentSchoolId?.toLongOrNull() ?: return
+        if (currentSchoolId?.toLongOrNull() == null) return
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
             
@@ -77,6 +84,8 @@ class UserManagementViewModel(
             
             userRepository.getAllUsers(
                 search = _uiState.value.searchQuery.takeIf { it.isNotBlank() },
+                roleId = _uiState.value.selectedRoleId,
+                status = _uiState.value.selectedStatus,
                 schoolId = schoolId,
                 page = _uiState.value.currentPage,
                 pageSize = _uiState.value.rowsPerPage
@@ -110,6 +119,16 @@ class UserManagementViewModel(
         loadUsers()
     }
 
+    fun onRoleFilterChanged(roleId: Long?) {
+        _uiState.value = _uiState.value.copy(selectedRoleId = roleId, currentPage = 1)
+        loadUsers()
+    }
+
+    fun onStatusFilterChanged(status: UserStatus?) {
+        _uiState.value = _uiState.value.copy(selectedStatus = status, currentPage = 1)
+        loadUsers()
+    }
+
     fun onPageChanged(page: Int) {
         _uiState.value = _uiState.value.copy(currentPage = page)
         loadUsers()
@@ -123,7 +142,7 @@ class UserManagementViewModel(
     fun createUser(fullName: String, phone: String, email: String, roleIds: List<Long>) {
         val schoolId = currentSchoolId?.toLongOrNull() ?: return
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isSaving = true)
+            _uiState.value = _uiState.value.copy(isSaving = true, error = null)
             val request = CreateUserRequest(
                 phone = phone,
                 fullName = fullName,
@@ -132,6 +151,14 @@ class UserManagementViewModel(
                 schoolId = schoolId,
                 roleIds = roleIds
             )
+            
+            try {
+                UserValidator.validateCreate(request)
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(isSaving = false, error = e.message)
+                return@launch
+            }
+
             userRepository.createUser(request).onSuccess {
                 _uiState.value = _uiState.value.copy(isSaving = false, saveSuccess = true)
                 loadUsers()
@@ -142,6 +169,7 @@ class UserManagementViewModel(
     }
 
     fun toggleUserStatus(user: UserUiModel) {
+        if (!_uiState.value.canEdit) return
         viewModelScope.launch {
             val newStatus = if (user.status == UserStatus.ACTIVE) UserStatus.INACTIVE else UserStatus.ACTIVE
             userRepository.updateUser(user.id, UpdateUserRequest(status = newStatus)).onSuccess {
@@ -151,6 +179,7 @@ class UserManagementViewModel(
     }
 
     fun deleteUser(userId: Long) {
+        if (!_uiState.value.canEdit) return
         viewModelScope.launch {
             userRepository.deleteUser(userId).onSuccess {
                 loadUsers()
@@ -166,4 +195,3 @@ class UserManagementViewModel(
         _uiState.value = _uiState.value.copy(saveSuccess = false)
     }
 }
-
