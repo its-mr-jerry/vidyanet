@@ -21,6 +21,10 @@
 
 ## Frontend Development
 - **Permissions**: Always verify user permissions via `GlobalStore.hasPermission()` before rendering interactive UI elements (Save buttons, Delete icons, etc.).
-- **Input Fields**: All inputs must use `AppTextField`/`AppTextArea` and be linked to a `ValidationSchema` entry.
-- **Error Feedback**: API and validation errors must be displayed using the `AppDialog` component for better visibility and consistency.
+- **Shared Components**:
+    - **Always** use input fields from the Common Component library (`AppTextField`, `AppTextArea`).
+    - **Always** use `AppDialog` for any popups, alerts, or error messages.
+- **Input Fields**: All inputs must be linked to a `ValidationSchema` entry for consistent constraints.
+- **Error Feedback**: API and validation errors must be displayed using the `AppDialog` component.
 - **Integration**: Maintain the Repository -> ViewModel -> Screen flow.
+- **Navigation & Deep Linking**: Every new screen must have a unique URL mapped. Browser history (Back, Forward) and page reloads must work correctly by ensuring navigation states are synchronized with the URL.
