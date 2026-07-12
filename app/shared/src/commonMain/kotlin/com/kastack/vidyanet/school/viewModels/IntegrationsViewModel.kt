@@ -5,6 +5,7 @@ package com.kastack.vidyanet.school.viewModels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kastack.vidyanet.models.settings.*
+import com.kastack.vidyanet.utils.toKotlin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -45,7 +46,7 @@ class IntegrationsViewModel : ViewModel() {
                 IntegrationDto("razorpay", "Razorpay", "Accept domestic Indian payments via UPI, NetBanking, and localized wallets.", IntegrationCategory.PAYMENTS, false)
             )
             
-            val now = Clock.System.now()
+            val now = Clock.System.now().toKotlin()
             val mockApiKeys = listOf(
                 ApiKeyDto("1", "Mobile App Prod", now.minus(12.days), now.minus(2.minutes), "Read/Write"),
                 ApiKeyDto("2", "Custom LMS Sync", now.minus(60.days), now.minus(1.days), "Read Only")

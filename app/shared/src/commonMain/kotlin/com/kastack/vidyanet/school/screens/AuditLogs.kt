@@ -24,9 +24,9 @@ import com.kastack.vidyanet.school.components.SchoolSettingsHeader
 import com.kastack.vidyanet.school.components.StatusBadge
 import com.kastack.vidyanet.school.viewModels.AuditLogsViewModel
 import com.kastack.vidyanet.theme.*
+import com.kastack.vidyanet.utils.toKotlinx
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-import kotlinx.datetime.toStdlibInstant
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -236,7 +236,7 @@ private fun AuditTable(
 @Composable
 private fun AuditMobileCard(log: AuditLogDto) {
     Column(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        val dt = log.timestamp.toStdlibInstant().toLocalDateTime(TimeZone.currentSystemDefault())
+        val dt = log.timestamp.toKotlinx().toLocalDateTime(TimeZone.currentSystemDefault())
         val dateStr = "${dt.month.name.take(3)} ${dt.day}, ${dt.year} ${dt.hour.toString().padStart(2, '0')}:${dt.minute.toString().padStart(2, '0')}"
         
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
@@ -284,7 +284,7 @@ private fun AuditLogRow(log: AuditLogDto) {
             .padding(horizontal = 24.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        val dt = log.timestamp.toStdlibInstant().toLocalDateTime(TimeZone.currentSystemDefault())
+        val dt = log.timestamp.toKotlinx().toLocalDateTime(TimeZone.currentSystemDefault())
         val dateStr = "${dt.month.name.take(3)} ${dt.day}, ${dt.year}"
         val timeStr = "${dt.hour.toString().padStart(2, '0')}:${dt.minute.toString().padStart(2, '0')}:${dt.second.toString().padStart(2, '0')}"
         

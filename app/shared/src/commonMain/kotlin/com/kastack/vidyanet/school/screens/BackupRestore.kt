@@ -31,6 +31,7 @@ import com.kastack.vidyanet.school.components.SchoolSettingsHeader
 import com.kastack.vidyanet.school.components.StatusBadge
 import com.kastack.vidyanet.school.viewModels.BackupRestoreViewModel
 import com.kastack.vidyanet.theme.*
+import com.kastack.vidyanet.utils.toKotlinx
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.koin.compose.viewmodel.koinViewModel
@@ -399,7 +400,7 @@ private fun RecentBackupHistorySection(
 @Composable
 private fun BackupSnapshotMobileCard(snapshot: BackupSnapshotDto, onRestore: (String) -> Unit, onDelete: (String) -> Unit) {
     Column(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        val dt = snapshot.timestamp.toLocalDateTime(TimeZone.currentSystemDefault())
+        val dt = snapshot.timestamp.toKotlinx().toLocalDateTime(TimeZone.currentSystemDefault())
         val dateStr = "${dt.month.name.take(3)} ${dt.day}, ${dt.year} · ${dt.hour.toString().padStart(2, '0')}:${dt.minute.toString().padStart(2, '0')} ${if (dt.hour >= 12) "PM" else "AM"}"
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
@@ -435,7 +436,7 @@ private fun BackupSnapshotRow(snapshot: BackupSnapshotDto, onRestore: (String) -
         modifier = Modifier.fillMaxWidth().clickable { }.padding(horizontal = 24.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        val dt = snapshot.timestamp.toLocalDateTime(TimeZone.currentSystemDefault())
+        val dt = snapshot.timestamp.toKotlinx().toLocalDateTime(TimeZone.currentSystemDefault())
         val dateStr = "${dt.month.name.take(3)} ${dt.day}, ${dt.year} · ${dt.hour.toString().padStart(2, '0')}:${dt.minute.toString().padStart(2, '0')} ${if (dt.hour >= 12) "PM" else "AM"}"
 
         Column(Modifier.weight(1.5f)) {

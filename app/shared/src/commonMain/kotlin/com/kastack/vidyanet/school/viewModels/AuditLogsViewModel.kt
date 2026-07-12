@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kastack.vidyanet.models.audit.AuditLogDto
 import com.kastack.vidyanet.models.audit.AuditStatus
+import com.kastack.vidyanet.utils.toKotlin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,7 +16,6 @@ import kotlinx.datetime.Clock
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.milliseconds
-import kotlin.time.Duration.Companion.minutes
 
 data class AuditLogsUiState(
     val logs: List<AuditLogDto> = emptyList(),
@@ -39,7 +39,7 @@ class AuditLogsViewModel : ViewModel() {
             _uiState.value = _uiState.value.copy(isLoading = true)
             delay(500.milliseconds) // Simulate network
             
-            val now = Clock.System.now()
+            val now = Clock.System.now().toKotlin()
             val mockLogs = listOf(
                 AuditLogDto(
                     id = 1,

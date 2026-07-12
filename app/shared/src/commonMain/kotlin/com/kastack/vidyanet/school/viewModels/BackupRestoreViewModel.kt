@@ -5,6 +5,7 @@ package com.kastack.vidyanet.school.viewModels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kastack.vidyanet.models.settings.*
+import com.kastack.vidyanet.utils.toKotlin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -42,7 +43,7 @@ class BackupRestoreViewModel : ViewModel() {
             _uiState.value = _uiState.value.copy(isLoading = true)
             delay(500.milliseconds)
             
-            val now = Clock.System.now()
+            val now = Clock.System.now().toKotlin()
             val mockSnapshots = listOf(
                 BackupSnapshotDto(
                     "1", "District_Master_Snap_2023_10_24", 

@@ -29,6 +29,7 @@ import com.kastack.vidyanet.school.components.SchoolSettingsHeader
 import com.kastack.vidyanet.school.components.StatusBadge
 import com.kastack.vidyanet.school.viewModels.IntegrationsViewModel
 import com.kastack.vidyanet.theme.*
+import com.kastack.vidyanet.utils.toKotlinx
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.koin.compose.viewmodel.koinViewModel
@@ -337,7 +338,7 @@ private fun ApiKeyMobileCard(key: ApiKeyDto, onRevoke: () -> Unit) {
         }
         
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            val dtCreated = key.createdAt.toLocalDateTime(TimeZone.currentSystemDefault())
+            val dtCreated = key.createdAt.toKotlinx().toLocalDateTime(TimeZone.currentSystemDefault())
             Column {
                 AppText("Created", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
                 AppText("${dtCreated.month.name.take(3)} ${dtCreated.day}, ${dtCreated.year}", style = MaterialTheme.typography.bodySmall)
@@ -370,7 +371,7 @@ private fun ApiKeyRow(key: ApiKeyDto, onRevoke: () -> Unit) {
             AppText(key.label, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
         }
         
-        val dtCreated = key.createdAt.toLocalDateTime(TimeZone.currentSystemDefault())
+        val dtCreated = key.createdAt.toKotlinx().toLocalDateTime(TimeZone.currentSystemDefault())
         AppText("${dtCreated.month.name.take(3)} ${dtCreated.day}, ${dtCreated.year}", Modifier.weight(1f), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         
         AppText(

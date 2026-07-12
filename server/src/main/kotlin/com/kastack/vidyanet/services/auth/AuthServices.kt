@@ -13,7 +13,6 @@ import com.kastack.vidyanet.models.auth.LoginResponse
 import com.kastack.vidyanet.models.user.UserStatus
 import com.kastack.vidyanet.models.user.UserType
 import com.kastack.vidyanet.models.auth.VerifyOtpRequest
-import kotlinx.datetime.toStdlibInstant
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.selectAll
@@ -72,7 +71,7 @@ class AuthServices {
                 throw UnauthorizedException("Invalid OTP code.")
             }
 
-            if (otpData[OtpsTable.expiresAt].toStdlibInstant() < now.toKotlinx().toStdlibInstant()) {
+            if (otpData[OtpsTable.expiresAt] < now.toKotlinx()) {
                 OtpsTable.deleteWhere { phone eq request.phone }
                 throw UnauthorizedException("OTP has expired. Please request a new one.")
             }
