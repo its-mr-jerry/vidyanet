@@ -1,12 +1,14 @@
 package com.kastack.vidyanet.models.user
 
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import kotlinx.serialization.Serializable
 
 @Serializable
 data class UserDto(
     val id: Long,
     val phone: String,
+    val fullName: String? = null,
+    val email: String? = null,
     val userType: UserType,
     val schoolId: Long? = null,
     val status: UserStatus,
@@ -26,8 +28,22 @@ data class UserStatsDto(
 )
 
 @Serializable
+data class CreateUserRequest(
+    val phone: String,
+    val fullName: String,
+    val email: String? = null,
+    val userType: UserType,
+    val schoolId: Long? = null,
+    val roleIds: List<Long> = emptyList()
+)
+
+@Serializable
 data class UpdateUserRequest(
+    val fullName: String? = null,
+    val email: String? = null,
     val userType: UserType? = null,
     val status: UserStatus? = null,
-    val schoolId: Long? = null
+    val schoolId: Long? = null,
+    val roleIds: List<Long>? = null
 )
+

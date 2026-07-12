@@ -4,20 +4,21 @@ package com.kastack.vidyanet.school.viewModels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.kastack.vidyanet.data.repositories.RoleRepository
 import com.kastack.vidyanet.data.repositories.UserRepository
-import com.kastack.vidyanet.models.user.UserStatus
-import kotlinx.coroutines.delay
+import com.kastack.vidyanet.models.user.*
+import com.kastack.vidyanet.models.role.RoleDto
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
-import kotlin.time.Duration.Companion.milliseconds
 
 data class UserUiModel(
     val id: Long,
     val name: String,
     val email: String,
+    val phone: String,
     val role: String,
     val lastLogin: String,
     val status: UserStatus,
@@ -26,12 +27,16 @@ data class UserUiModel(
 
 data class UserManagementUiState(
     val users: List<UserUiModel> = emptyList(),
+    val roles: List<RoleDto> = emptyList(),
     val isLoading: Boolean = false,
+    val isSaving: Boolean = false,
+    val saveSuccess: Boolean = false,
     val error: String? = null,
     val totalUsers: Int = 0,
     val currentPage: Int = 1,
     val rowsPerPage: Int = 10,
-    val pendingInvites: List<PendingInvite> = emptyList()
+    val pendingInvites: List<PendingInvite> = emptyList(),
+    val searchQuery: String = ""
 )
 
 data class PendingInvite(
@@ -41,38 +46,68 @@ data class PendingInvite(
 )
 
 class UserManagementViewModel(
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val roleRepository: RoleRepository
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(UserManagementUiState())
     val uiState: StateFlow<UserManagementUiState> = _uiState.asStateFlow()
+    private var currentSchoolId: String? = null
 
-    init {
-        loadUsers()
+    fun init(schoolId: String) {
+        currentSchoolId = schoolId
+        loadData()
+    }
+
+    private fun loadData() {
+        val schoolId = currentSchoolId?.toLongOrNull() ?: return
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true)
+            
+            val rolesResult = roleRepository.getAllRoles()
+            _uiState.value = _uiState.value.copy(roles = rolesResult.getOrDefault(emptyList()))
+
+            loadUsers()
+        }
     }
 
     fun loadUsers() {
+        val schoolId = currentSchoolId?.toLongOrNull() ?: return
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
-            delay(500.milliseconds) // Simulate network
             
-            val mockUsers = listOf(
-                UserUiModel(1, "Sarah Jenkins", "s.jenkins@educore.edu", "TEACHER", "2 hours ago", UserStatus.ACTIVE),
-                UserUiModel(2, "Marcus Wright", "m.wright@educore.edu", "ADMIN", "10 mins ago", UserStatus.ACTIVE),
-                UserUiModel(3, "David Chen", "d.chen@educore.edu", "STAFF", "Yesterday, 4:30 PM", UserStatus.INACTIVE)
-            )
-
-            val mockInvites = listOf(
-                PendingInvite("lisa.monroe@edu.com", "Teacher", "Sent 2 days ago"),
-                PendingInvite("james.p@staff.edu.com", "Staff", "Sent 5 hours ago")
-            )
-
-            _uiState.value = _uiState.value.copy(
-                users = mockUsers,
-                totalUsers = 124,
-                pendingInvites = mockInvites,
-                isLoading = false
-            )
+            userRepository.getAllUsers(
+                search = _uiState.value.searchQuery.takeIf { it.isNotBlank() },
+                schoolId = schoolId,
+                page = _uiState.value.currentPage,
+                pageSize = _uiState.value.rowsPerPage
+            ).onSuccess { response ->
+                _uiState.value = _uiState.value.copy(
+                    users = response.items.map { it.toUiModel() },
+                    totalUsers = response.totalItems.toInt(),
+                    isLoading = false
+                )
+            }.onFailure { error ->
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = error.message
+                )
+            }
         }
+    }
+
+    private fun UserDto.toUiModel() = UserUiModel(
+        id = id,
+        name = fullName ?: "Unknown",
+        email = email ?: "",
+        phone = phone,
+        role = roles.joinToString(", "),
+        lastLogin = lastLoginAt?.toString() ?: "Never",
+        status = status
+    )
+
+    fun onSearchQueryChanged(query: String) {
+        _uiState.value = _uiState.value.copy(searchQuery = query, currentPage = 1)
+        loadUsers()
     }
 
     fun onPageChanged(page: Int) {
@@ -85,15 +120,50 @@ class UserManagementViewModel(
         loadUsers()
     }
 
-    fun deactivateUser(userId: Long) {
-        // Implementation for deactivating user
+    fun createUser(fullName: String, phone: String, email: String, roleIds: List<Long>) {
+        val schoolId = currentSchoolId?.toLongOrNull() ?: return
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isSaving = true)
+            val request = CreateUserRequest(
+                phone = phone,
+                fullName = fullName,
+                email = email,
+                userType = UserType.SCHOOL_USER,
+                schoolId = schoolId,
+                roleIds = roleIds
+            )
+            userRepository.createUser(request).onSuccess {
+                _uiState.value = _uiState.value.copy(isSaving = false, saveSuccess = true)
+                loadUsers()
+            }.onFailure { error ->
+                _uiState.value = _uiState.value.copy(isSaving = false, error = error.message)
+            }
+        }
     }
 
-    fun activateUser(userId: Long) {
-        // Implementation for activating user
+    fun toggleUserStatus(user: UserUiModel) {
+        viewModelScope.launch {
+            val newStatus = if (user.status == UserStatus.ACTIVE) UserStatus.INACTIVE else UserStatus.ACTIVE
+            userRepository.updateUser(user.id, UpdateUserRequest(status = newStatus)).onSuccess {
+                loadUsers()
+            }
+        }
     }
 
-    fun resendInvite(email: String) {
-        // Implementation for resending invite
+    fun deleteUser(userId: Long) {
+        viewModelScope.launch {
+            userRepository.deleteUser(userId).onSuccess {
+                loadUsers()
+            }
+        }
+    }
+
+    fun clearError() {
+        _uiState.value = _uiState.value.copy(error = null)
+    }
+    
+    fun resetSaveSuccess() {
+        _uiState.value = _uiState.value.copy(saveSuccess = false)
     }
 }
+

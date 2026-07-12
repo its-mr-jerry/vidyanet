@@ -21,16 +21,16 @@ abstract class SchoolRules {
                 get {
                     getAllSchools(call)
                 }
-                delete("/{id}") {
+                delete("/{schoolId}") {
                     deleteSchool(call)
                 }
             }
 
             authorize(UserType.PLATFORM_OWNER, UserType.SCHOOL_USER) {
-                get("/{id}") {
+                get("/{schoolId}") {
                     getSchool(call)
                 }
-                put("/{id}") {
+                put("/{schoolId}") {
                     updateSchool(call)
                 }
             }

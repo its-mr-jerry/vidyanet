@@ -1,6 +1,8 @@
 package com.kastack.vidyanet.services.role
 
 import com.kastack.vidyanet.models.role.*
+import com.kastack.vidyanet.models.user.UserType
+import com.kastack.vidyanet.services.user.UserService
 import com.kastack.vidyanet.validators.RoleValidator
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -9,7 +11,10 @@ import io.ktor.server.auth.jwt.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 
-class RoleController(private val roleService: RoleService = RoleService()) : RoleRules() {
+class RoleController(
+    private val roleService: RoleService = RoleService(),
+    private val userService: UserService = UserService()
+) : RoleRules() {
 
     override suspend fun getAllRoles(call: ApplicationCall) {
         call.respond(roleService.getAllRoles())

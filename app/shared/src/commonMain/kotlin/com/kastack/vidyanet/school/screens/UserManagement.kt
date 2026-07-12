@@ -1,61 +1,22 @@
 package com.kastack.vidyanet.school.screens
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.*
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AdminPanelSettings
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Key
-import androidx.compose.material.icons.filled.LockReset
-import androidx.compose.material.icons.filled.Mail
-import androidx.compose.material.icons.filled.PersonOff
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Tune
-import androidx.compose.material.icons.filled.UploadFile
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Surface
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.VerticalDivider
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.kastack.vidyanet.commonUi.components.AppDialog
+import com.kastack.vidyanet.commonUi.components.AppDialogState
+import com.kastack.vidyanet.commonUi.components.AppDialogType
 import com.kastack.vidyanet.commonUi.components.AppPagination
 import com.kastack.vidyanet.commonUi.components.AppText
 import com.kastack.vidyanet.models.user.UserStatus
@@ -71,9 +32,40 @@ import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun UserManagement(
+    schoolId: String,
     viewModel: UserManagementViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var showInviteDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(schoolId) {
+        viewModel.init(schoolId)
+    }
+
+    if (uiState.error != null) {
+        AppDialog(
+            state = AppDialogState(
+                isVisible = true,
+                type = AppDialogType.ERROR,
+                title = "Error",
+                message = uiState.error ?: "",
+                confirmLabel = "OK",
+                onConfirm = viewModel::clearError
+            ),
+            onDismissRequest = viewModel::clearError
+        )
+    }
+
+    if (showInviteDialog) {
+        InviteUserDialog(
+            roles = uiState.roles,
+            onDismiss = { showInviteDialog = false },
+            onInvite = { name, phone, email, roleIds ->
+                viewModel.createUser(name, phone, email, roleIds)
+                showInviteDialog = false
+            }
+        )
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         // Top Navigation / Header
@@ -84,7 +76,7 @@ fun UserManagement(
             primaryAction = HeaderAction(
                 label = "Invite User",
                 icon = Icons.Default.Add,
-                onClick = { /* Invite logic */ }
+                onClick = { showInviteDialog = true }
             ),
             secondaryAction = HeaderAction(
                 label = "Bulk Invite",
@@ -101,7 +93,10 @@ fun UserManagement(
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
             // Filter Bar
-            FilterBar()
+            FilterBar(
+                searchQuery = uiState.searchQuery,
+                onSearchChange = viewModel::onSearchQueryChanged
+            )
 
             BoxWithConstraints {
                 if (maxWidth > 1000.dp) {
@@ -114,14 +109,16 @@ fun UserManagement(
                                 currentPage = uiState.currentPage,
                                 rowsPerPage = uiState.rowsPerPage,
                                 onPageChange = viewModel::onPageChanged,
-                                onRowsPerPageChange = viewModel::onRowsPerPageChanged
+                                onRowsPerPageChange = viewModel::onRowsPerPageChanged,
+                                onToggleStatus = viewModel::toggleUserStatus,
+                                onDelete = viewModel::deleteUser
                             )
                         }
 
                         // Right Sidebar Content
                         Column(modifier = Modifier.weight(0.35f), verticalArrangement = Arrangement.spacedBy(24.dp)) {
                             PendingInvitesSection(uiState.pendingInvites)
-                            RolesSummaryCard()
+                            RolesSummaryCard(uiState.roles)
                         }
                     }
                 } else {
@@ -132,10 +129,12 @@ fun UserManagement(
                             currentPage = uiState.currentPage,
                             rowsPerPage = uiState.rowsPerPage,
                             onPageChange = viewModel::onPageChanged,
-                            onRowsPerPageChange = viewModel::onRowsPerPageChanged
+                            onRowsPerPageChange = viewModel::onRowsPerPageChanged,
+                            onToggleStatus = viewModel::toggleUserStatus,
+                            onDelete = viewModel::deleteUser
                         )
                         PendingInvitesSection(uiState.pendingInvites)
-                        RolesSummaryCard()
+                        RolesSummaryCard(uiState.roles)
                     }
                 }
             }
@@ -145,7 +144,10 @@ fun UserManagement(
 
 
 @Composable
-private fun FilterBar() {
+private fun FilterBar(
+    searchQuery: String,
+    onSearchChange: (String) -> Unit
+) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
@@ -158,9 +160,9 @@ private fun FilterBar() {
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             OutlinedTextField(
-                value = "",
-                onValueChange = {},
-                placeholder = { AppText("Search by name or email...", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                value = searchQuery,
+                onValueChange = onSearchChange,
+                placeholder = { AppText("Search by name, phone or email...", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                 leadingIcon = { Icon(Icons.Default.Search, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(8.dp),
@@ -218,7 +220,9 @@ private fun UserTable(
     currentPage: Int,
     rowsPerPage: Int,
     onPageChange: (Int) -> Unit,
-    onRowsPerPageChange: (Int) -> Unit
+    onRowsPerPageChange: (Int) -> Unit,
+    onToggleStatus: (UserUiModel) -> Unit,
+    onDelete: (Long) -> Unit
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -249,7 +253,7 @@ private fun UserTable(
                 if (isMobile) {
                     Column(modifier = Modifier.fillMaxWidth()) {
                         users.forEach { user ->
-                            UserMobileCard(user)
+                            UserMobileCard(user, onToggleStatus, onDelete)
                             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                         }
                     }
@@ -272,7 +276,7 @@ private fun UserTable(
                             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                             
                             users.forEach { user ->
-                                UserTableRow(user)
+                                UserTableRow(user, onToggleStatus, onDelete)
                                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                             }
                         }
@@ -293,7 +297,11 @@ private fun UserTable(
 }
 
 @Composable
-private fun UserMobileCard(user: UserUiModel) {
+private fun UserMobileCard(
+    user: UserUiModel,
+    onToggleStatus: (UserUiModel) -> Unit,
+    onDelete: (Long) -> Unit
+) {
     Column(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.weight(1f)) {
@@ -315,23 +323,13 @@ private fun UserMobileCard(user: UserUiModel) {
         }
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            val roleColor = when(user.role) {
-                "ADMIN" -> MaterialTheme.colorScheme.secondaryContainer
-                "TEACHER" -> MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                else -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.1f)
-            }
-            val roleTextColor = when(user.role) {
-                "ADMIN" -> MaterialTheme.colorScheme.onSecondaryContainer
-                "TEACHER" -> MaterialTheme.colorScheme.primary
-                else -> MaterialTheme.colorScheme.tertiary
-            }
-            Surface(color = roleColor, shape = CircleShape) {
+            Surface(color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), shape = CircleShape) {
                 AppText(
                     text = user.role, 
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp), 
                     style = MaterialTheme.typography.labelSmall, 
                     fontWeight = FontWeight.Black, 
-                    color = roleTextColor
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
             
@@ -340,14 +338,18 @@ private fun UserMobileCard(user: UserUiModel) {
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
             IconButton(onClick = {}) { Icon(Icons.Default.LockReset, null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) }
-            IconButton(onClick = {}) { Icon(Icons.Default.Key, null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) }
-            IconButton(onClick = {}) { Icon(if (user.status == UserStatus.ACTIVE) Icons.Default.PersonOff else Icons.Default.Check, null, modifier = Modifier.size(18.dp), tint = if (user.status == UserStatus.ACTIVE) AcademicError else MaterialTheme.colorScheme.primary) }
+            IconButton(onClick = { onToggleStatus(user) }) { Icon(if (user.status == UserStatus.ACTIVE) Icons.Default.PersonOff else Icons.Default.Check, null, modifier = Modifier.size(18.dp), tint = if (user.status == UserStatus.ACTIVE) AcademicError else MaterialTheme.colorScheme.primary) }
+            IconButton(onClick = { onDelete(user.id) }) { Icon(Icons.Default.Delete, null, modifier = Modifier.size(18.dp), tint = AcademicError) }
         }
     }
 }
 
 @Composable
-private fun UserTableRow(user: UserUiModel) {
+private fun UserTableRow(
+    user: UserUiModel,
+    onToggleStatus: (UserUiModel) -> Unit,
+    onDelete: (Long) -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -374,18 +376,8 @@ private fun UserTableRow(user: UserUiModel) {
         }
         
         Box(modifier = Modifier.weight(1f)) {
-            val roleColor = when(user.role) {
-                "ADMIN" -> MaterialTheme.colorScheme.secondaryContainer
-                "TEACHER" -> MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                else -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.1f)
-            }
-            val roleTextColor = when(user.role) {
-                "ADMIN" -> MaterialTheme.colorScheme.onSecondaryContainer
-                "TEACHER" -> MaterialTheme.colorScheme.primary
-                else -> MaterialTheme.colorScheme.tertiary
-            }
-            Surface(color = roleColor, shape = CircleShape) {
-                AppText(user.role, modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Black, color = roleTextColor)
+            Surface(color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), shape = CircleShape) {
+                AppText(user.role, modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
             }
         }
         
@@ -399,8 +391,8 @@ private fun UserTableRow(user: UserUiModel) {
         
         Row(modifier = Modifier.width(100.dp), horizontalArrangement = Arrangement.End) {
             IconButton(onClick = {}) { Icon(Icons.Default.LockReset, null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) }
-            IconButton(onClick = {}) { Icon(Icons.Default.Key, null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) }
-            IconButton(onClick = {}) { Icon(if (user.status == UserStatus.ACTIVE) Icons.Default.PersonOff else Icons.Default.Check, null, modifier = Modifier.size(18.dp), tint = if (user.status == UserStatus.ACTIVE) AcademicError else MaterialTheme.colorScheme.primary) }
+            IconButton(onClick = { onToggleStatus(user) }) { Icon(if (user.status == UserStatus.ACTIVE) Icons.Default.PersonOff else Icons.Default.Check, null, modifier = Modifier.size(18.dp), tint = if (user.status == UserStatus.ACTIVE) AcademicError else MaterialTheme.colorScheme.primary) }
+            IconButton(onClick = { onDelete(user.id) }) { Icon(Icons.Default.Delete, null, modifier = Modifier.size(18.dp), tint = AcademicError) }
         }
     }
 }
@@ -469,7 +461,7 @@ private fun PendingInviteRow(invite: PendingInvite) {
 }
 
 @Composable
-private fun RolesSummaryCard() {
+private fun RolesSummaryCard(roles: List<com.kastack.vidyanet.models.role.RoleDto>) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
@@ -484,9 +476,9 @@ private fun RolesSummaryCard() {
                 AppText("Roles Summary", style = MaterialTheme.typography.headlineSmall, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
             }
             
-            SummaryItem("Administrators", 12)
-            SummaryItem("Teaching Staff", 84)
-            SummaryItem("Support Staff", 28)
+            roles.take(5).forEach { role ->
+                SummaryItem(role.roleName, (5..50).random()) // Mock count
+            }
             
             Button(
                 onClick = {},
@@ -507,4 +499,49 @@ private fun SummaryItem(label: String, count: Int) {
         AppText(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         AppText(count.toString(), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
     }
+}
+
+@Composable
+private fun InviteUserDialog(
+    roles: List<com.kastack.vidyanet.models.role.RoleDto>,
+    onDismiss: () -> Unit,
+    onInvite: (name: String, phone: String, email: String, roleIds: List<Long>) -> Unit
+) {
+    var name by remember { mutableStateOf("") }
+    var phone by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
+    var selectedRoleId by remember { mutableStateOf<Long?>(null) }
+
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { AppText("Invite User", fontWeight = FontWeight.Bold) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                OutlinedTextField(value = name, onValueChange = { name = it }, label = { AppText("Full Name") })
+                OutlinedTextField(value = phone, onValueChange = { phone = it }, label = { AppText("Phone Number") })
+                OutlinedTextField(value = email, onValueChange = { email = it }, label = { AppText("Email") })
+                
+                AppText("Assign Role", style = MaterialTheme.typography.labelSmall)
+                roles.forEach { role ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth().clickable { selectedRoleId = role.id },
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        androidx.compose.material3.RadioButton(selected = selectedRoleId == role.id, onClick = { selectedRoleId = role.id })
+                        AppText(role.roleName)
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = { if (name.isNotBlank() && phone.isNotBlank() && selectedRoleId != null) onInvite(name, phone, email, listOf(selectedRoleId!!)) }) {
+                AppText("Invite")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                AppText("Cancel")
+            }
+        }
+    )
 }

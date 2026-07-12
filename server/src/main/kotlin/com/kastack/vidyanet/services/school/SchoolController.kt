@@ -22,12 +22,11 @@ class SchoolController(private val schoolService: SchoolService = SchoolService(
     }
 
     override suspend fun getSchool(call: ApplicationCall) {
-        val id = call.parameters["id"]?.toLongOrNull()
+        val id = call.parameters["schoolId"]?.toLongOrNull()
         if (id == null) {
             call.respond(HttpStatusCode.BadRequest, "Invalid ID")
             return
         }
-        call.ensureSchoolAccess(id)
         val school = schoolService.getSchoolById(id)
         if (school != null) {
             call.respond(school)
@@ -37,12 +36,11 @@ class SchoolController(private val schoolService: SchoolService = SchoolService(
     }
 
     override suspend fun updateSchool(call: ApplicationCall) {
-        val id = call.parameters["id"]?.toLongOrNull()
+        val id = call.parameters["schoolId"]?.toLongOrNull()
         if (id == null) {
             call.respond(HttpStatusCode.BadRequest, "Invalid ID")
             return
         }
-        call.ensureSchoolAccess(id)
         val request = call.receive<UpdateSchoolRequest>()
         SchoolValidator.validateUpdate(request)
         try {
@@ -53,7 +51,7 @@ class SchoolController(private val schoolService: SchoolService = SchoolService(
     }
 
     override suspend fun deleteSchool(call: ApplicationCall) {
-        val id = call.parameters["id"]?.toLongOrNull()
+        val id = call.parameters["schoolId"]?.toLongOrNull()
         if (id == null) {
             call.respond(HttpStatusCode.BadRequest, "Invalid ID")
             return

@@ -2,20 +2,23 @@ package com.kastack.vidyanet.database.entities
 
 import com.kastack.vidyanet.models.user.UserDto
 import com.kastack.vidyanet.models.role.*
-import kotlinx.datetime.Instant
+import com.kastack.vidyanet.database.toKotlin
+import kotlin.time.Instant
 
 fun UserEntity.toDto() = UserDto(
     id = id.value,
     phone = phone,
+    fullName = fullName,
+    email = email,
     userType = userType,
     schoolId = schoolId?.value,
     status = status,
     isPhoneVerified = isPhoneVerified,
     roles = roles.map { it.roleName },
-    createdAt = createdAt,
-    updatedAt = updatedAt,
-    lastLoginAt = lastLoginAt,
-    deletedAt = deletedAt
+    createdAt = createdAt.toKotlin(),
+    updatedAt = updatedAt.toKotlin(),
+    lastLoginAt = lastLoginAt?.toKotlin(),
+    deletedAt = deletedAt?.toKotlin()
 )
 
 fun RoleEntity.toDto() = RoleDto(
@@ -24,8 +27,8 @@ fun RoleEntity.toDto() = RoleDto(
     roleName = roleName,
     description = description,
     isSystemRole = isSystemRole,
-    createdAt = createdAt,
-    updatedAt = updatedAt
+    createdAt = createdAt.toKotlin(),
+    updatedAt = updatedAt.toKotlin()
 )
 
 fun PermissionEntity.toDto() = PermissionAction.valueOf(action)
@@ -51,7 +54,7 @@ fun UserRoleAssignmentEntity.toDto() = UserRoleDto(
     roleCode = role.roleCode,
     roleName = role.roleName,
     assignedBy = assignedBy?.value,
-    assignedAt = assignedAt
+    assignedAt = assignedAt.toKotlin()
 )
 
 fun SchoolEntity.toDto() = com.kastack.vidyanet.models.schoolUser.SchoolDto(

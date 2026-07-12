@@ -2,11 +2,7 @@ package com.kastack.vidyanet.data.repositories
 
 import com.kastack.vidyanet.data.DatabaseManager
 import com.kastack.vidyanet.models.PagedResponse
-import com.kastack.vidyanet.models.user.UpdateUserRequest
-import com.kastack.vidyanet.models.user.UserDto
-import com.kastack.vidyanet.models.user.UserStatsDto
-import com.kastack.vidyanet.models.user.UserStatus
-import com.kastack.vidyanet.models.user.UserType
+import com.kastack.vidyanet.models.user.*
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
@@ -17,9 +13,12 @@ interface UserRepository {
         search: String? = null,
         userType: UserType? = null,
         status: UserStatus? = null,
+        schoolId: Long? = null,
         page: Int = 1,
         pageSize: Int = 10
     ): Result<PagedResponse<UserDto>>
+
+    suspend fun createUser(request: CreateUserRequest): Result<UserDto>
 
     suspend fun updateUser(id: Long, request: UpdateUserRequest): Result<UserDto>
 
@@ -48,6 +47,7 @@ class UserRepositoryImpl(
         search: String?,
         userType: UserType?,
         status: UserStatus?,
+        schoolId: Long?,
         page: Int,
         pageSize: Int
     ): Result<PagedResponse<UserDto>> = runCatching {
@@ -56,6 +56,7 @@ class UserRepositoryImpl(
             search?.let { parameter("search", it) }
             userType?.let { parameter("userType", it.name) }
             status?.let { parameter("status", it.name) }
+            schoolId?.let { parameter("schoolId", it) }
             parameter("page", page)
             parameter("pageSize", pageSize)
         }
@@ -64,6 +65,20 @@ class UserRepositoryImpl(
         } else {
             val errorMsg = try { response.body<Map<String, String>>()["message"] } catch(_: Exception) { null }
             throw Exception(errorMsg ?: "Server returned ${response.status}")
+        }
+    }
+
+    override suspend fun createUser(request: CreateUserRequest): Result<UserDto> = runCatching {
+        val response = httpClient.post("users") {
+            authHeader()
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }
+        if (response.status == HttpStatusCode.Created) {
+            response.body<UserDto>()
+        } else {
+            val errorMsg = try { response.body<Map<String, String>>()["message"] } catch(_: Exception) { null }
+            throw Exception(errorMsg ?: "Failed to create user: ${response.status}")
         }
     }
 

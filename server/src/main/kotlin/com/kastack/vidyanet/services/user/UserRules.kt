@@ -11,29 +11,32 @@ abstract class UserRules {
     abstract suspend fun getUserById(call: ApplicationCall)
     abstract suspend fun updateUser(call: ApplicationCall)
     abstract suspend fun deleteUser(call: ApplicationCall)
+    abstract suspend fun createUser(call: ApplicationCall)
     abstract suspend fun getMe(call: ApplicationCall)
 
     fun Route.UserRoutes() {
-        authorize(UserType.PLATFORM_OWNER){
+        authorize(UserType.PLATFORM_OWNER, UserType.SCHOOL_USER) {
             get("/stats") {
                 getUserStats(call)
             }
             get {
                 getAllUsers(call)
             }
-            get("/{id}") {
+            post {
+                createUser(call)
+            }
+            get("/{userId}") {
                 getUserById(call)
             }
-            put("/{id}") {
+            put("/{userId}") {
                 updateUser(call)
             }
-            delete("/{id}") {
+            delete("/{userId}") {
                 deleteUser(call)
             }
         }
         get("/me") {
             getMe(call)
         }
-
     }
 }

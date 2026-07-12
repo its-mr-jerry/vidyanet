@@ -20,7 +20,6 @@ class AcademicSettingsController(
             call.respond(HttpStatusCode.BadRequest, "Missing or invalid schoolId")
             return
         }
-        call.ensureSchoolAccess(schoolId)
         val settings = service.getAcademicSettings(schoolId)
         call.respond(settings)
     }
@@ -31,7 +30,6 @@ class AcademicSettingsController(
             call.respond(HttpStatusCode.BadRequest, "Missing or invalid schoolId")
             return
         }
-        call.ensureSchoolAccess(schoolId)
         val request = call.receive<UpdateAcademicSettingsRequest>()
         AcademicSettingsValidator.validateUpdate(request)
         service.updateAcademicSettings(schoolId, request)
@@ -44,7 +42,6 @@ class AcademicSettingsController(
             call.respond(HttpStatusCode.BadRequest, "Missing or invalid schoolId")
             return
         }
-        call.ensureSchoolAccess(schoolId)
         val request = call.receive<AcademicSessionDto>()
         AcademicSettingsValidator.validateSession(request)
         service.addAcademicSession(schoolId, request)
@@ -52,13 +49,13 @@ class AcademicSettingsController(
     }
 
     override suspend fun deleteSession(call: ApplicationCall) {
+        val schoolId = call.parameters["schoolId"]?.toLongOrNull()
         val sessionId = call.parameters["sessionId"]?.toLongOrNull()
-        if (sessionId == null) {
-            call.respond(HttpStatusCode.BadRequest, "Missing or invalid sessionId")
+        if (schoolId == null || sessionId == null) {
+            call.respond(HttpStatusCode.BadRequest, "Missing or invalid parameters")
             return
         }
-        // Ideally we should check if this session belongs to a school the user has access to
-        service.deleteAcademicSession(sessionId)
+        service.deleteAcademicSession(schoolId, sessionId)
         call.respond(HttpStatusCode.OK, "Session deleted")
     }
 
@@ -68,7 +65,6 @@ class AcademicSettingsController(
             call.respond(HttpStatusCode.BadRequest, "Missing or invalid schoolId")
             return
         }
-        call.ensureSchoolAccess(schoolId)
         val request = call.receive<HolidayDto>()
         AcademicSettingsValidator.validateHoliday(request)
         service.addHoliday(schoolId, request)
@@ -76,12 +72,13 @@ class AcademicSettingsController(
     }
 
     override suspend fun deleteHoliday(call: ApplicationCall) {
+        val schoolId = call.parameters["schoolId"]?.toLongOrNull()
         val holidayId = call.parameters["holidayId"]?.toLongOrNull()
-        if (holidayId == null) {
-            call.respond(HttpStatusCode.BadRequest, "Missing or invalid holidayId")
+        if (schoolId == null || holidayId == null) {
+            call.respond(HttpStatusCode.BadRequest, "Missing or invalid parameters")
             return
         }
-        service.deleteHoliday(holidayId)
+        service.deleteHoliday(schoolId, holidayId)
         call.respond(HttpStatusCode.OK, "Holiday deleted")
     }
 }

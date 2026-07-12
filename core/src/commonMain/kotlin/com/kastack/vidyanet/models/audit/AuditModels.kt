@@ -1,6 +1,6 @@
 package com.kastack.vidyanet.models.audit
 
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import kotlinx.serialization.Serializable
 
 @Serializable

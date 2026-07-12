@@ -1,25 +1,20 @@
 package com.kastack.vidyanet.services.user
 
 
-import com.kastack.vidyanet.database.entities.UserEntity
-import com.kastack.vidyanet.database.entities.toDto
-import com.kastack.vidyanet.database.tables.SchoolsTable
-import com.kastack.vidyanet.database.tables.UsersTable
+import com.kastack.vidyanet.database.entities.*
+import com.kastack.vidyanet.database.tables.*
 import com.kastack.vidyanet.models.PagedResponse
-import com.kastack.vidyanet.models.user.UpdateUserRequest
-import com.kastack.vidyanet.models.user.UserDto
-import com.kastack.vidyanet.models.user.UserStatsDto
-import com.kastack.vidyanet.models.user.UserStatus
-import com.kastack.vidyanet.models.user.UserType
+import com.kastack.vidyanet.models.user.*
+import com.kastack.vidyanet.database.toKotlinx
 import com.kastack.vidyanet.plugins.UnauthorizedException
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.todayIn
+import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.sql.*
-import org.jetbrains.exposed.sql.lowerCase
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.transaction
 import kotlin.time.Clock as StdlibClock
-import kotlinx.datetime.toDeprecatedInstant
 import kotlin.math.ceil
 
 class UserService {
@@ -28,16 +23,18 @@ class UserService {
         search: String? = null,
         userType: UserType? = null,
         status: UserStatus? = null,
+        schoolId: Long? = null,
         page: Int = 1,
         pageSize: Int = 10
     ): PagedResponse<UserDto> = transaction {
-        val query = (UsersTable leftJoin SchoolsTable).selectAll()
+        val query = UsersTable.selectAll()
 
         search?.let { s ->
-            val searchLower = s.lowercase()
+            val searchLower = "%${s.lowercase()}%"
             query.andWhere {
-                (UsersTable.phone like "%$s%") or
-                        (SchoolsTable.schoolName like "%$searchLower%")
+                (UsersTable.phone like searchLower) or
+                        (UsersTable.fullName.lowerCase() like searchLower) or
+                        (UsersTable.email.lowerCase() like searchLower)
             }
         }
 
@@ -47,6 +44,10 @@ class UserService {
 
         status?.let { s ->
             query.andWhere { UsersTable.status eq s }
+        }
+        
+        schoolId?.let { sid ->
+            query.andWhere { UsersTable.schoolId eq sid }
         }
 
         val totalItems = query.count()
@@ -65,6 +66,29 @@ class UserService {
         )
     }
 
+    fun createUser(request: CreateUserRequest): UserDto = transaction {
+        val user = UserEntity.new {
+            phone = request.phone
+            fullName = request.fullName
+            email = request.email
+            userType = request.userType
+            status = UserStatus.ACTIVE
+            schoolId = request.schoolId?.let { EntityID(it, SchoolsTable) }
+            createdAt = StdlibClock.System.now().toKotlinx()
+            updatedAt = StdlibClock.System.now().toKotlinx()
+        }
+
+        request.roleIds.forEach { rid ->
+            UserRoleAssignmentEntity.new {
+                userId = user.id
+                roleId = EntityID(rid, RolesTable)
+                assignedAt = StdlibClock.System.now().toKotlinx()
+            }
+        }
+
+        user.toDto()
+    }
+
     fun getUserStats(): UserStatsDto = transaction {
         val total = UsersTable.selectAll().count()
 
@@ -72,7 +96,7 @@ class UserService {
         val startOfToday = today.atStartOfDayIn(TimeZone.currentSystemDefault())
 
         val newToday = UsersTable.selectAll().where {
-            UsersTable.createdAt greaterEq startOfToday.toDeprecatedInstant()
+            UsersTable.createdAt greaterEq startOfToday.toKotlinx()
         }.count()
 
         val byType = UserType.entries.associate { type ->
@@ -96,14 +120,30 @@ class UserService {
 
     fun updateUser(id: Long, request: UpdateUserRequest): UserDto {
         val user = transaction {
-            UserEntity.findById(id)?.apply {
+            val userEntity = UserEntity.findById(id) ?: return@transaction null
+            userEntity.apply {
+                request.fullName?.let { fullName = it }
+                request.email?.let { email = it }
                 request.userType?.let { userType = it }
                 request.status?.let { status = it }
                 request.schoolId?.let { 
-                    schoolId = org.jetbrains.exposed.dao.id.EntityID(it, com.kastack.vidyanet.database.tables.SchoolsTable)
+                    schoolId = EntityID(it, SchoolsTable)
                 }
-                updatedAt = StdlibClock.System.now().toDeprecatedInstant()
+                updatedAt = StdlibClock.System.now().toKotlinx()
             }
+            
+            request.roleIds?.let { rids ->
+                // Simple role replacement: delete old, add new
+                UserRoleAssignmentsTable.deleteWhere { userId eq id }
+                rids.forEach { rid ->
+                    UserRoleAssignmentEntity.new {
+                        userId = EntityID(id, UsersTable)
+                        roleId = EntityID(rid, RolesTable)
+                        assignedAt = StdlibClock.System.now().toKotlinx()
+                    }
+                }
+            }
+            userEntity
         } ?: throw UnauthorizedException("User not found")
 
         return user.toDto()
@@ -119,3 +159,4 @@ class UserService {
         UserEntity.findById(userId)?.toDto() ?: throw UnauthorizedException("User not found")
     }
 }
+

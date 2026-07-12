@@ -43,7 +43,7 @@ fun SchoolNavHost(
                     SchoolDestination.DashboardOverview -> SchoolDashboard(schoolId = schoolId)
                     SchoolDestination.SettingsSchool -> SchoolSettings(schoolId = schoolId)
                     SchoolDestination.SettingsAcademic -> AcademicSettings(schoolId = schoolId)
-                    SchoolDestination.SettingsUserManagement -> UserManagement()
+                    SchoolDestination.SettingsUserManagement -> UserManagement(schoolId = schoolId)
                     SchoolDestination.SettingsRolesPermissions -> RolesPermissions()
                     SchoolDestination.SettingsNotifications -> NotificationSettings()
                     SchoolDestination.SettingsIntegrations -> Integrations()

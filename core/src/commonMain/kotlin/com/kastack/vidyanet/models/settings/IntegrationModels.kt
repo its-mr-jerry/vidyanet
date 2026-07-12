@@ -1,6 +1,6 @@
 package com.kastack.vidyanet.models.settings
 
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import kotlinx.serialization.Serializable
 
 @Serializable

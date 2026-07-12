@@ -89,10 +89,14 @@ class AcademicSettingsViewModel(
     }
 
     fun deleteSession(schoolId: String, sessionId: Long) {
+        val id = schoolId.toLongOrNull() ?: return
         viewModelScope.launch {
-            schoolRepository.deleteAcademicSession(sessionId)
+            schoolRepository.deleteAcademicSession(id, sessionId)
                 .onSuccess {
                     loadSettings(schoolId)
+                } 
+                .onFailure { error ->
+                    _uiState.value = _uiState.value.copy(isSaving = false, error = error.message)
                 }
         }
     }
@@ -100,7 +104,7 @@ class AcademicSettingsViewModel(
     fun addHoliday(schoolId: String, name: String, date: String) {
         val id = schoolId.toLongOrNull() ?: return
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isSaving = true)
+            _uiState.value = _uiState.value.copy(isSaving = true, error = null)
             val holiday = HolidayDto(name = name, date = date)
             schoolRepository.addHoliday(id, holiday)
                 .onSuccess {
@@ -114,10 +118,14 @@ class AcademicSettingsViewModel(
     }
 
     fun deleteHoliday(schoolId: String, holidayId: Long) {
+        val id = schoolId.toLongOrNull() ?: return
         viewModelScope.launch {
-            schoolRepository.deleteHoliday(holidayId)
+            schoolRepository.deleteHoliday(id, holidayId)
                 .onSuccess {
                     loadSettings(schoolId)
+                }
+                .onFailure { error ->
+                    _uiState.value = _uiState.value.copy(isSaving = false, error = error.message)
                 }
         }
     }

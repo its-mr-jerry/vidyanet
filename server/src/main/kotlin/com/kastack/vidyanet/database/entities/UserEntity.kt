@@ -10,6 +10,8 @@ class UserEntity(id: EntityID<Long>) : LongEntity(id) {
     companion object : LongEntityClass<UserEntity>(UsersTable)
 
     var phone by UsersTable.phone
+    var fullName by UsersTable.fullName
+    var email by UsersTable.email
     var userType by UsersTable.userType
     var status by UsersTable.status
     var schoolId by UsersTable.schoolId

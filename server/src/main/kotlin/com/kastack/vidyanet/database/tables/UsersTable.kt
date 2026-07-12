@@ -11,6 +11,10 @@ object UsersTable : LongIdTable("users", "user_id") {
 
     val phone = varchar("phone", 20).uniqueIndex()
 
+    val fullName = varchar("full_name", 100).nullable()
+
+    val email = varchar("email", 150).nullable()
+
     val userType = enumerationByName(
         "user_type",
         20,

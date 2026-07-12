@@ -18,9 +18,9 @@ interface SchoolRepository {
     suspend fun getAcademicSettings(schoolId: Long): Result<AcademicSettingsDto>
     suspend fun updateAcademicSettings(schoolId: Long, request: UpdateAcademicSettingsRequest): Result<Unit>
     suspend fun addAcademicSession(schoolId: Long, session: AcademicSessionDto): Result<Unit>
-    suspend fun deleteAcademicSession(sessionId: Long): Result<Unit>
+    suspend fun deleteAcademicSession(schoolId: Long, sessionId: Long): Result<Unit>
     suspend fun addHoliday(schoolId: Long, holiday: HolidayDto): Result<Unit>
-    suspend fun deleteHoliday(holidayId: Long): Result<Unit>
+    suspend fun deleteHoliday(schoolId: Long, holidayId: Long): Result<Unit>
 }
 
 class SchoolRepositoryImpl(
@@ -150,8 +150,8 @@ class SchoolRepositoryImpl(
         }
     }
 
-    override suspend fun deleteAcademicSession(sessionId: Long): Result<Unit> = runCatching {
-        val response = httpClient.delete("schools/0/academic-settings/sessions/$sessionId") { // schoolId is ignored in this endpoint but route has it... wait
+    override suspend fun deleteAcademicSession(schoolId: Long, sessionId: Long): Result<Unit> = runCatching {
+        val response = httpClient.delete("schools/$schoolId/academic-settings/sessions/$sessionId") {
             authHeader()
         }
         if (response.status != HttpStatusCode.OK) {
@@ -170,8 +170,10 @@ class SchoolRepositoryImpl(
         }
     }
 
-    override suspend fun deleteHoliday(holidayId: Long): Result<Unit> = runCatching {
-        val response = httpClient.delete("schools/0/academic-settings/holidays/$holidayId")
+    override suspend fun deleteHoliday(schoolId: Long, holidayId: Long): Result<Unit> = runCatching {
+        val response = httpClient.delete("schools/$schoolId/academic-settings/holidays/$holidayId") {
+            authHeader()
+        }
         if (response.status != HttpStatusCode.OK) {
             throw Exception("Failed to delete holiday: ${response.status}")
         }

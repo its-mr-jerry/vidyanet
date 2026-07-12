@@ -18,7 +18,6 @@ class SchoolSettingsController(
             call.respond(HttpStatusCode.BadRequest, "Invalid School ID")
             return
         }
-        call.ensureSchoolAccess(schoolId)
         call.respond(settingsService.getSchoolSettings(schoolId))
     }
 
@@ -28,7 +27,6 @@ class SchoolSettingsController(
             call.respond(HttpStatusCode.BadRequest, "Invalid School ID")
             return
         }
-        call.ensureSchoolAccess(schoolId)
         val request = call.receive<UpdateSchoolSettingsRequest>()
         SchoolSettingsValidator.validateUpdate(request)
         call.respond(settingsService.updateSchoolSettings(schoolId, request))

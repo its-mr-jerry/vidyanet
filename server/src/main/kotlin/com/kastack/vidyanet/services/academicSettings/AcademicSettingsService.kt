@@ -90,9 +90,11 @@ class AcademicSettingsService {
         }
     }
 
-    fun deleteAcademicSession(sessionId: Long) {
+    fun deleteAcademicSession(schoolId: Long, sessionId: Long) {
         transaction {
-            AcademicSessionsTable.deleteWhere { AcademicSessionsTable.id eq sessionId }
+            AcademicSessionsTable.deleteWhere { 
+                (AcademicSessionsTable.id eq sessionId) and (AcademicSessionsTable.schoolId eq schoolId)
+            }
         }
     }
 
@@ -107,9 +109,11 @@ class AcademicSettingsService {
         }
     }
 
-    fun deleteHoliday(holidayId: Long) {
+    fun deleteHoliday(schoolId: Long, holidayId: Long) {
         transaction {
-            HolidaysTable.deleteWhere { HolidaysTable.id eq holidayId }
+            HolidaysTable.deleteWhere { 
+                (HolidaysTable.id eq holidayId) and (HolidaysTable.schoolId eq schoolId)
+            }
         }
     }
 }
