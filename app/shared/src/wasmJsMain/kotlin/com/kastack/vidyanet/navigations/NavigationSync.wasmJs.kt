@@ -18,7 +18,8 @@ actual fun BrowserHistorySync(
     mainBackStack: NavBackStack<MainDestination>,
     authBackStack: NavBackStack<AuthDestination>,
     superAdminBackStack: NavBackStack<SuperAdminDestination>,
-    schoolBackStack: NavBackStack<SchoolDestination>
+    schoolBackStack: NavBackStack<SchoolDestination>,
+    isAllowed: (NavigationState) -> Boolean
 ) {
     val currentMain = try { mainBackStack.last() } catch (e: Exception) { null }
     val currentAuth = if (currentMain == MainDestination.Auth) {
@@ -58,9 +59,7 @@ actual fun BrowserHistorySync(
 
     // Update state when URL changes (back/forward/manual entry)
     DisposableEffect(Unit) {
-        val onHashChange = { _: Event ->
-            val state = getDestinationsForPath(window.location.hash)
-            
+        val applyState = { state: NavigationState ->
             if (mainBackStack.last() != state.main) {
                 mainBackStack.clear()
                 mainBackStack.add(state.main)
@@ -78,27 +77,28 @@ actual fun BrowserHistorySync(
                 schoolBackStack.add(state.school)
             }
         }
+
+        val onHashChange = { _: Event ->
+            val requestedState = getDestinationsForPath(window.location.hash)
+            
+            if (isAllowed(requestedState)) {
+                applyState(requestedState)
+            } else {
+                window.history.replaceState(null, "", "#/login")
+                applyState(NavigationState(MainDestination.Auth, AuthDestination.Login))
+            }
+        }
         window.addEventListener("hashchange", onHashChange)
         
         // Handle initial path
-        val initialPath = window.location.hash.ifEmpty { hashPath }
-        val state = getDestinationsForPath(initialPath)
+        val initialHash = window.location.hash.ifEmpty { hashPath }
+        val initialState = getDestinationsForPath(initialHash)
         
-        if (mainBackStack.last() != state.main) {
-            mainBackStack.clear()
-            mainBackStack.add(state.main)
-        }
-        if (state.auth != null && authBackStack.last() != state.auth) {
-            authBackStack.clear()
-            authBackStack.add(state.auth)
-        }
-        if (state.superAdmin != null && superAdminBackStack.last() != state.superAdmin) {
-            superAdminBackStack.clear()
-            superAdminBackStack.add(state.superAdmin)
-        }
-        if (state.school != null && schoolBackStack.last() != state.school) {
-            schoolBackStack.clear()
-            schoolBackStack.add(state.school)
+        if (isAllowed(initialState)) {
+            applyState(initialState)
+        } else {
+            window.history.replaceState(null, "", "#/login")
+            applyState(NavigationState(MainDestination.Auth, AuthDestination.Login))
         }
 
         onDispose {

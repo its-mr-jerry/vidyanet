@@ -2,49 +2,30 @@ package com.kastack.vidyanet.commonUi.viewModels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.kastack.vidyanet.data.DatabaseManager
-import com.kastack.vidyanet.data.repositories.UserRepository
+import com.kastack.vidyanet.core.GlobalStore
 import com.kastack.vidyanet.models.user.UserType
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 class SplashViewModel(
-    private val databaseManager: DatabaseManager,
-    private val userRepository: UserRepository
+    private val globalStore: GlobalStore
 ) : ViewModel() {
 
-    private val _isLoggedIn = MutableStateFlow<Boolean?>(null)
-    val isLoggedIn = _isLoggedIn.asStateFlow()
-
-    private val _isSuperAdmin = MutableStateFlow<Boolean>(false)
-    val isSuperAdmin = _isSuperAdmin.asStateFlow()
-
-    private val _userSchoolId = MutableStateFlow<String?>(null)
-    val userSchoolId = _userSchoolId.asStateFlow()
+    val isLoggedIn = globalStore.currentUser.map { it != null }.asStateFlow(viewModelScope, false)
+    val isSuperAdmin = globalStore.currentUser.map { it?.userType == UserType.PLATFORM_OWNER }.asStateFlow(viewModelScope, false)
+    val userSchoolId = globalStore.currentUser.map { it?.schoolId?.toString() }.asStateFlow(viewModelScope, null)
 
     init {
-        checkAuth()
+        // Initialization logic moved to App.kt to handle reloads correctly
     }
+}
 
-    private fun checkAuth() {
-        viewModelScope.launch {
-            val token = databaseManager.getString("auth_token", "")
-            if (token.isEmpty()) {
-                delay(2000) // Ensure splash is visible
-                _isLoggedIn.value = false
-                return@launch
-            }
-
-            userRepository.getMe().onSuccess { user ->
-                _isSuperAdmin.value = user.userType == UserType.PLATFORM_OWNER
-                _userSchoolId.value = user.schoolId?.toString()
-                _isLoggedIn.value = true
-            }.onFailure {
-                databaseManager.remove("auth_token")
-                _isLoggedIn.value = false
-            }
-        }
+// Extension to convert Flow to StateFlow in ViewModelScope
+private fun <T> Flow<T>.asStateFlow(scope: CoroutineScope, initialValue: T): StateFlow<T> {
+    val flow = MutableStateFlow(initialValue)
+    scope.launch {
+        this@asStateFlow.collect { flow.value = it }
     }
+    return flow.asStateFlow()
 }

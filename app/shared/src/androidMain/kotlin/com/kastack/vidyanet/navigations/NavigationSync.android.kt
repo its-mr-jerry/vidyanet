@@ -11,7 +11,8 @@ actual fun BrowserHistorySync(
     mainBackStack: NavBackStack<MainDestination>,
     authBackStack: NavBackStack<AuthDestination>,
     superAdminBackStack: NavBackStack<SuperAdminDestination>,
-    schoolBackStack: NavBackStack<SchoolDestination>
+    schoolBackStack: NavBackStack<SchoolDestination>,
+    isAllowed: (NavigationState) -> Boolean
 ) {
     // No-op on Android
 }

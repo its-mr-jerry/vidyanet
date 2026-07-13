@@ -35,6 +35,7 @@ import com.kastack.vidyanet.commonUi.components.AppText
 import com.kastack.vidyanet.commonUi.viewModels.LoginUiState
 import com.kastack.vidyanet.commonUi.viewModels.LoginViewModel
 import com.kastack.vidyanet.core.AppConstants
+import com.kastack.vidyanet.models.user.UserType
 import com.kastack.vidyanet.navigations.MainDestination
 import com.kastack.vidyanet.utils.AdaptiveLayout
 import com.kastack.vidyanet.utils.WindowSizeClass
@@ -55,7 +56,7 @@ fun LoginScreen(
 
     LaunchedEffect(loginSuccess, currentUser) {
         if (loginSuccess && currentUser != null) {
-            val dest = if (currentUser?.userType == com.kastack.vidyanet.models.user.UserType.PLATFORM_OWNER) {
+            val dest = if (currentUser?.userType == UserType.PLATFORM_OWNER) {
                 MainDestination.SuperAdmin
             } else if (currentUser?.schoolId != null) {
                 MainDestination.School(currentUser?.schoolId.toString())
@@ -195,7 +196,6 @@ fun LoginFormSection(
     otp: String,
     isCompact: Boolean
 ) {
-    var passwordVisible by remember { mutableStateOf(false) }
 
     Column(
         modifier = modifier

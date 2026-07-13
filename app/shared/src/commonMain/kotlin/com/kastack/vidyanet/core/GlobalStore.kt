@@ -13,6 +13,9 @@ class GlobalStore {
     private val _currentUser = MutableStateFlow<UserDto?>(null)
     val currentUser: StateFlow<UserDto?> = _currentUser.asStateFlow()
 
+    private val _isInitializing = MutableStateFlow(true)
+    val isInitializing: StateFlow<Boolean> = _isInitializing.asStateFlow()
+
     private val _adminName = MutableStateFlow("Super Admin")
     val adminName: StateFlow<String> = _adminName.asStateFlow()
     
@@ -39,6 +42,10 @@ class GlobalStore {
 
     fun updateSystemConfig(config: SystemConfigDto) {
         _systemConfig.value = config
+    }
+
+    fun setInitializing(loading: Boolean) {
+        _isInitializing.value = loading
     }
 
     fun clear() {
