@@ -140,4 +140,13 @@ class UserController(
         val id = call.userId ?: return call.respond(HttpStatusCode.Unauthorized)
         call.respond(userService.getMe(id))
     }
+
+    override suspend fun updateFcmToken(call: ApplicationCall) {
+        val userId = call.userId ?: return call.respond(HttpStatusCode.Unauthorized)
+        val request = call.receive<Map<String, String>>()
+        val token = request["token"] ?: return call.respond(HttpStatusCode.BadRequest, "Token is required")
+        
+        userService.updateFcmToken(userId, token)
+        call.respond(HttpStatusCode.OK, mapOf("message" to "FCM token updated successfully"))
+    }
 }

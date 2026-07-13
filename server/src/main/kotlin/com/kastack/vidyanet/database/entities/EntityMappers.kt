@@ -14,6 +14,7 @@ fun UserEntity.toDto() = UserDto(
     schoolId = schoolId?.value,
     status = status,
     isPhoneVerified = isPhoneVerified,
+    fcmToken = fcmToken,
     roles = roles.map { it.roleName },
     permissions = roles.flatMap { it.permissions }.map { "${it.moduleName}_${it.action}" }.distinct(),
     createdAt = createdAt.toKotlin(),

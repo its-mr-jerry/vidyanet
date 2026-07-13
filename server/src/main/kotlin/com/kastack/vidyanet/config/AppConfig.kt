@@ -33,4 +33,6 @@ object AppConfig {
     val jwtAudience = get("JWT_AUDIENCE", "jwt-audience")
     val jwtDomain = get("JWT_DOMAIN", "https://jwt-provider-domain/")
     val jwtRealm = get("JWT_REALM", "in-house-erp-admin")
+
+    val firebaseServiceAccountJson = get("FIREBASE_SERVICE_ACCOUNT_JSON")
 }

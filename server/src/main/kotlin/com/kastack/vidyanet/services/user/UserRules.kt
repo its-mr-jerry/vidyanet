@@ -13,6 +13,7 @@ abstract class UserRules {
     abstract suspend fun deleteUser(call: ApplicationCall)
     abstract suspend fun createUser(call: ApplicationCall)
     abstract suspend fun getMe(call: ApplicationCall)
+    abstract suspend fun updateFcmToken(call: ApplicationCall)
 
     fun Route.UserRoutes() {
         authorize(UserType.PLATFORM_OWNER, UserType.SCHOOL_USER) {
@@ -37,6 +38,9 @@ abstract class UserRules {
         }
         get("/me") {
             getMe(call)
+        }
+        put("/fcm-token") {
+            updateFcmToken(call)
         }
     }
 }

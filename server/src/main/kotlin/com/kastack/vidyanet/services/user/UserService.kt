@@ -136,6 +136,7 @@ class UserService {
                 request.schoolId?.let { 
                     schoolId = EntityID(it, SchoolsTable)
                 }
+                request.fcmToken?.let { fcmToken = it }
                 updatedAt = StdlibClock.System.now().toKotlinx()
             }
             
@@ -164,6 +165,19 @@ class UserService {
 
     fun getMe(userId: Long): UserDto = transaction {
         UserEntity.findById(userId)?.toDto() ?: throw UnauthorizedException("User not found")
+    }
+
+    fun updateFcmToken(userId: Long, token: String) = transaction {
+        val user = UserEntity.findById(userId) ?: throw UnauthorizedException("User not found")
+        user.fcmToken = token
+        user.updatedAt = StdlibClock.System.now().toKotlinx()
+    }
+
+    fun getFcmTokensForSchool(schoolId: Long): List<String> = transaction {
+        UsersTable.select(UsersTable.fcmToken)
+            .where { (UsersTable.schoolId eq schoolId) and UsersTable.fcmToken.isNotNull() }
+            .map { it[UsersTable.fcmToken]!! }
+            .filter { it.isNotBlank() }
     }
 }
 

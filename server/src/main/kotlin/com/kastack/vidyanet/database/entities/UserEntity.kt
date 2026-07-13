@@ -16,6 +16,7 @@ class UserEntity(id: EntityID<Long>) : LongEntity(id) {
     var status by UsersTable.status
     var schoolId by UsersTable.schoolId
     var isPhoneVerified by UsersTable.isPhoneVerified
+    var fcmToken by UsersTable.fcmToken
     var lastLoginAt by UsersTable.lastLoginAt
     var createdAt by UsersTable.createdAt
     var updatedAt by UsersTable.updatedAt

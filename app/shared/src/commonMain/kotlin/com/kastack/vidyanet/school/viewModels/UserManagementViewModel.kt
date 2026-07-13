@@ -38,16 +38,9 @@ data class UserManagementUiState(
     val totalUsers: Int = 0,
     val currentPage: Int = 1,
     val rowsPerPage: Int = 10,
-    val pendingInvites: List<PendingInvite> = emptyList(),
     val searchQuery: String = "",
     val selectedRoleId: Long? = null,
     val selectedStatus: UserStatus? = null
-)
-
-data class PendingInvite(
-    val email: String,
-    val role: String,
-    val sentAt: String
 )
 
 class UserManagementViewModel(
@@ -168,10 +161,9 @@ class UserManagementViewModel(
         }
     }
 
-    fun toggleUserStatus(user: UserUiModel) {
+    fun updateUserStatus(user: UserUiModel, newStatus: UserStatus) {
         if (!_uiState.value.canEdit) return
         viewModelScope.launch {
-            val newStatus = if (user.status == UserStatus.ACTIVE) UserStatus.INACTIVE else UserStatus.ACTIVE
             userRepository.updateUser(user.id, UpdateUserRequest(status = newStatus)).onSuccess {
                 loadUsers()
             }
@@ -189,6 +181,71 @@ class UserManagementViewModel(
 
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
+    }
+
+    fun importUsersFromCsv(csvData: String) {
+        val schoolId = currentSchoolId?.toLongOrNull() ?: return
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isSaving = true, error = null)
+            val lines = csvData.lines().filter { it.isNotBlank() }
+            if (lines.size <= 1) {
+                _uiState.value = _uiState.value.copy(isSaving = false, error = "CSV is empty or only contains header")
+                return@launch
+            }
+
+            val header = lines.first().split(",").map { it.trim().lowercase() }
+            val nameIdx = header.indexOf("full name")
+            val phoneIdx = header.indexOf("phone")
+            val emailIdx = header.indexOf("email")
+            val rolesIdx = header.indexOf("roles")
+
+            if (nameIdx == -1 || phoneIdx == -1) {
+                _uiState.value = _uiState.value.copy(isSaving = false, error = "Invalid CSV format. Required columns: Full Name, Phone")
+                return@launch
+            }
+
+            var successCount = 0
+            var failCount = 0
+
+            lines.drop(1).forEach { line ->
+                val columns = line.split(",").map { it.trim() }
+                if (columns.size > maxOf(nameIdx, phoneIdx)) {
+                    val fullName = columns[nameIdx]
+                    val phone = columns[phoneIdx]
+                    val email = if (emailIdx != -1 && columns.size > emailIdx) columns[emailIdx] else ""
+                    val rolesStr = if (rolesIdx != -1 && columns.size > rolesIdx) columns[rolesIdx] else ""
+                    
+                    val roleIds = if (rolesStr.contains(";")) {
+                        rolesStr.split(";").mapNotNull { it.trim().toLongOrNull() }
+                    } else {
+                        // Support comma or semicolon
+                        rolesStr.split(",").mapNotNull { it.trim().toLongOrNull() }
+                    }
+
+                    val request = CreateUserRequest(
+                        phone = phone,
+                        fullName = fullName,
+                        email = email.takeIf { it.isNotBlank() },
+                        userType = UserType.SCHOOL_USER,
+                        schoolId = schoolId,
+                        roleIds = roleIds
+                    )
+
+                    userRepository.createUser(request).onSuccess {
+                        successCount++
+                    }.onFailure {
+                        failCount++
+                    }
+                }
+            }
+
+            _uiState.value = _uiState.value.copy(
+                isSaving = false,
+                saveSuccess = true,
+                error = if (failCount > 0) "Imported $successCount users. Failed $failCount users." else null
+            )
+            loadUsers()
+        }
     }
     
     fun resetSaveSuccess() {

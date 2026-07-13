@@ -7,6 +7,8 @@ import com.kastack.vidyanet.models.schoolUser.UpdateAcademicSettingsRequest
 import com.kastack.vidyanet.plugins.ensureSchoolAccess
 import com.kastack.vidyanet.plugins.userId
 import com.kastack.vidyanet.services.audit.AuditLogService
+import com.kastack.vidyanet.services.notification.NotificationService
+import com.kastack.vidyanet.services.user.UserService
 import com.kastack.vidyanet.validators.AcademicSettingsValidator
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -15,6 +17,7 @@ import io.ktor.server.response.*
 
 class AcademicSettingsController(
     private val service: AcademicSettingsService = AcademicSettingsService(),
+    private val userService: UserService = UserService(),
     private val auditLogService: AuditLogService = AuditLogService()
 ) : AcademicSettingsRules() {
 
@@ -108,6 +111,14 @@ class AcademicSettingsController(
         val request = call.receive<HolidayDto>()
         AcademicSettingsValidator.validateHoliday(request)
         service.addHoliday(schoolId, request)
+
+        // Send push notification to all users in the school
+        val tokens = userService.getFcmTokensForSchool(schoolId)
+        NotificationService.sendMulticastPushNotification(
+            tokens = tokens,
+            title = "New Holiday Added",
+            body = "${request.name} on ${request.date}"
+        )
 
         auditLogService.logAction(
             schoolId = schoolId,

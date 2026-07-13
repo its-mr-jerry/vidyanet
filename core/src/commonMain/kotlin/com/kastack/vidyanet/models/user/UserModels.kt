@@ -13,6 +13,7 @@ data class UserDto(
     val schoolId: Long? = null,
     val status: UserStatus,
     val isPhoneVerified: Boolean,
+    val fcmToken: String? = null,
     val roles: List<String> = emptyList(),
     val permissions: List<String> = emptyList(), // Format: MODULE_ACTION
     val createdAt: Instant,
@@ -45,6 +46,7 @@ data class UpdateUserRequest(
     val userType: UserType? = null,
     val status: UserStatus? = null,
     val schoolId: Long? = null,
-    val roleIds: List<Long>? = null
+    val roleIds: List<Long>? = null,
+    val fcmToken: String? = null
 )
 

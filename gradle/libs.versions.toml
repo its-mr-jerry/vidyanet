@@ -25,6 +25,7 @@ aws-s3 = "2.29.52"
 dotenv = "6.5.0"
 kotlinx-datetime = "0.8.0-0.6.x-compat"
 h2 = "2.4.240"
+firebase-admin = "9.5.0"
 
 #core
 kotlinx-serialization = "1.11.0"
@@ -86,6 +87,7 @@ flyway-core = { module = "org.flywaydb:flyway-core", version.ref = "flyway" }
 flyway-postgresql = { module = "org.flywaydb:flyway-database-postgresql", version.ref = "flyway" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
 h2 = { module = "com.h2database:h2", version.ref = "h2" }
+firebase-admin = { module = "com.google.firebase:firebase-admin", version.ref = "firebase-admin" }
 
 #core
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }

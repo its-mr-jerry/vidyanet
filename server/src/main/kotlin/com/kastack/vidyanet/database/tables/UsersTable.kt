@@ -35,6 +35,9 @@ object UsersTable : LongIdTable("users", "user_id") {
     val isPhoneVerified = bool("is_phone_verified")
         .default(false)
 
+    val fcmToken = text("fcm_token")
+        .nullable()
+
     val lastLoginAt = timestamp("last_login_at")
         .nullable()
 

@@ -34,6 +34,7 @@ dependencies {
     implementation(libs.postgresql)
     implementation(libs.aws.s3)
     implementation(libs.dotenv.kotlin)
+    implementation(libs.firebase.admin)
     testImplementation(libs.ktor.serverTestHost)
     testImplementation(libs.ktor.client.core)
     testImplementation(libs.ktor.client.contentNegotiation)
