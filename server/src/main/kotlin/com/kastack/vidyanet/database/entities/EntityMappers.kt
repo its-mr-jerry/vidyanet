@@ -58,6 +58,21 @@ fun UserRoleAssignmentEntity.toDto() = UserRoleDto(
     assignedAt = assignedAt.toKotlin()
 )
 
+fun AuditLogEntity.toDto() = com.kastack.vidyanet.models.audit.AuditLogDto(
+    id = id.value,
+    schoolId = schoolId?.value,
+    timestamp = timestamp.toKotlin(),
+    userId = userId?.value,
+    userName = user?.fullName,
+    userRole = user?.roles?.firstOrNull()?.roleName, // Simplified
+    action = action,
+    actionDetails = actionDetails,
+    module = module,
+    status = status,
+    ipAddress = ipAddress,
+    userAgent = userAgent
+)
+
 fun SchoolEntity.toDto() = com.kastack.vidyanet.models.schoolUser.SchoolDto(
     id = id.value,
     schoolCode = schoolCode,

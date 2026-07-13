@@ -59,7 +59,9 @@ fun AppTextField(
                 colors = OutlinedTextFieldDefaults.colors(
                     unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
                     focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                 ),
                 textStyle = MaterialTheme.typography.bodyMedium
             )
@@ -77,6 +79,7 @@ fun AppTextArea(
     readOnly: Boolean = false,
     error: String? = null
 ) {
+    val minHeight = (24 * rows + 32).dp
     Column(modifier = modifier) {
         AppText(
             text = schema.label,
@@ -86,7 +89,7 @@ fun AppTextArea(
         )
         
         if (readOnly) {
-            AppReadOnlyField(value = value, minHeight = (40 * rows).dp)
+            AppReadOnlyField(value = value, minHeight = minHeight)
         } else {
             OutlinedTextField(
                 value = value,
@@ -95,7 +98,7 @@ fun AppTextArea(
                         onValueChange(it)
                     }
                 },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().heightIn(min = minHeight),
                 shape = RoundedCornerShape(12.dp),
                 minLines = rows,
                 isError = error != null,
@@ -103,7 +106,9 @@ fun AppTextArea(
                 colors = OutlinedTextFieldDefaults.colors(
                     unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
                     focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                 ),
                 textStyle = MaterialTheme.typography.bodyMedium
             )
@@ -164,13 +169,16 @@ fun AppFormDropdown(
                 onValueChange = {},
                 readOnly = true,
                 isError = error != null,
+                supportingText = error?.let { { Text(it) } },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                 modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
                     focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                 ),
                 textStyle = MaterialTheme.typography.bodyMedium
             )

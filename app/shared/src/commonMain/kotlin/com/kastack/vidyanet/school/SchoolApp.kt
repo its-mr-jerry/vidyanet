@@ -472,6 +472,41 @@ private fun SidebarContent(
                 onNavigate = onNavigate
             )
 
+            // Hostel
+            ExpandableSidebarItem(
+                label = "Hostel",
+                icon = Icons.Default.Hotel,
+                isCollapsed = isCollapsed,
+                items = listOf(
+                    "Rooms" to null,
+                    "Residents" to null,
+                    "Attendance" to null,
+                    "Fee Tracking" to null,
+                    "Maintenance" to null
+                ),
+                currentDestination = currentDestination,
+                isExpanded = expandedCategory == "Hostel",
+                onToggle = { expandedCategory = if (expandedCategory == "Hostel") null else "Hostel" },
+                onNavigate = onNavigate
+            )
+
+            // Sports
+            ExpandableSidebarItem(
+                label = "Sports",
+                icon = Icons.Default.SportsBasketball,
+                isCollapsed = isCollapsed,
+                items = listOf(
+                    "Events" to null,
+                    "Teams" to null,
+                    "Equipment" to null,
+                    "Coaches" to null
+                ),
+                currentDestination = currentDestination,
+                isExpanded = expandedCategory == "Sports",
+                onToggle = { expandedCategory = if (expandedCategory == "Sports") null else "Sports" },
+                onNavigate = onNavigate
+            )
+
             // Communication
             ExpandableSidebarItem(
                 label = "Communication",

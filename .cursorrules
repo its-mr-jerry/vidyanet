@@ -10,6 +10,7 @@
 - **Security**:
     - Every request involving school or user data must be isolated using centralized ownership checks.
     - Use `{schoolId}` and `{userId}` in paths to trigger automatic multi-tenancy protection in the authorization plugin.
+    - **PLATFORM_OWNER Bypass**: The authorization system must explicitly allow `PLATFORM_OWNER` to bypass role, ownership, and granular permission checks to ensure global administrative capability.
 - **Validation**: Every new API must be gated by a validator in the `:core` module.
 - **Database**:
     - Every schema change must have a corresponding Flyway migration in `server/src/main/resources/db/migration/`.
@@ -28,3 +29,4 @@
 - **Error Feedback**: API and validation errors must be displayed using the `AppDialog` component.
 - **Integration**: Maintain the Repository -> ViewModel -> Screen flow.
 - **Navigation & Deep Linking**: Every new screen must have a unique URL mapped. Browser history (Back, Forward) and page reloads must work correctly by ensuring navigation states are synchronized with the URL.
+- **Responsive UI**: **Always** design layouts to be fully responsive. Use adaptive techniques (e.g., `BoxWithConstraints`, conditional logic based on screen width) to ensure the UI looks and functions perfectly across Mobile, Tablet, Web, and Desktop. Grids, tables, and sidebars must automatically transition between mobile-optimized and desktop-optimized states.

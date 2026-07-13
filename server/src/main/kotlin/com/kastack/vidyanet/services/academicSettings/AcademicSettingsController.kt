@@ -1,9 +1,12 @@
 package com.kastack.vidyanet.services.academicSettings
 
+import com.kastack.vidyanet.models.audit.AuditStatus
 import com.kastack.vidyanet.models.schoolUser.AcademicSessionDto
 import com.kastack.vidyanet.models.schoolUser.HolidayDto
 import com.kastack.vidyanet.models.schoolUser.UpdateAcademicSettingsRequest
 import com.kastack.vidyanet.plugins.ensureSchoolAccess
+import com.kastack.vidyanet.plugins.userId
+import com.kastack.vidyanet.services.audit.AuditLogService
 import com.kastack.vidyanet.validators.AcademicSettingsValidator
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -11,7 +14,8 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 
 class AcademicSettingsController(
-    private val service: AcademicSettingsService = AcademicSettingsService()
+    private val service: AcademicSettingsService = AcademicSettingsService(),
+    private val auditLogService: AuditLogService = AuditLogService()
 ) : AcademicSettingsRules() {
 
     override suspend fun getSettings(call: ApplicationCall) {
@@ -33,6 +37,18 @@ class AcademicSettingsController(
         val request = call.receive<UpdateAcademicSettingsRequest>()
         AcademicSettingsValidator.validateUpdate(request)
         service.updateAcademicSettings(schoolId, request)
+        
+        auditLogService.logAction(
+            schoolId = schoolId,
+            userId = call.userId,
+            action = "Updated Academic Settings",
+            actionDetails = "Modified grading scale or promotion rules",
+            module = "ACADEMICS",
+            status = AuditStatus.SUCCESS,
+            ipAddress = call.request.local.remoteAddress,
+            userAgent = call.request.headers["User-Agent"]
+        )
+
         call.respond(HttpStatusCode.OK, "Settings updated")
     }
 
@@ -45,6 +61,18 @@ class AcademicSettingsController(
         val request = call.receive<AcademicSessionDto>()
         AcademicSettingsValidator.validateSession(request)
         service.addAcademicSession(schoolId, request)
+
+        auditLogService.logAction(
+            schoolId = schoolId,
+            userId = call.userId,
+            action = "Added Academic Session",
+            actionDetails = "Created new session: ${request.name}",
+            module = "ACADEMICS",
+            status = AuditStatus.SUCCESS,
+            ipAddress = call.request.local.remoteAddress,
+            userAgent = call.request.headers["User-Agent"]
+        )
+
         call.respond(HttpStatusCode.Created, "Session added")
     }
 
@@ -56,6 +84,18 @@ class AcademicSettingsController(
             return
         }
         service.deleteAcademicSession(schoolId, sessionId)
+
+        auditLogService.logAction(
+            schoolId = schoolId,
+            userId = call.userId,
+            action = "Deleted Academic Session",
+            actionDetails = "Removed session ID: $sessionId",
+            module = "ACADEMICS",
+            status = AuditStatus.SUCCESS,
+            ipAddress = call.request.local.remoteAddress,
+            userAgent = call.request.headers["User-Agent"]
+        )
+
         call.respond(HttpStatusCode.OK, "Session deleted")
     }
 
@@ -68,6 +108,18 @@ class AcademicSettingsController(
         val request = call.receive<HolidayDto>()
         AcademicSettingsValidator.validateHoliday(request)
         service.addHoliday(schoolId, request)
+
+        auditLogService.logAction(
+            schoolId = schoolId,
+            userId = call.userId,
+            action = "Added Holiday",
+            actionDetails = "Created holiday: ${request.name} on ${request.date}",
+            module = "ACADEMICS",
+            status = AuditStatus.SUCCESS,
+            ipAddress = call.request.local.remoteAddress,
+            userAgent = call.request.headers["User-Agent"]
+        )
+
         call.respond(HttpStatusCode.Created, "Holiday added")
     }
 
@@ -79,6 +131,18 @@ class AcademicSettingsController(
             return
         }
         service.deleteHoliday(schoolId, holidayId)
+
+        auditLogService.logAction(
+            schoolId = schoolId,
+            userId = call.userId,
+            action = "Deleted Holiday",
+            actionDetails = "Removed holiday ID: $holidayId",
+            module = "ACADEMICS",
+            status = AuditStatus.SUCCESS,
+            ipAddress = call.request.local.remoteAddress,
+            userAgent = call.request.headers["User-Agent"]
+        )
+
         call.respond(HttpStatusCode.OK, "Holiday deleted")
     }
 }

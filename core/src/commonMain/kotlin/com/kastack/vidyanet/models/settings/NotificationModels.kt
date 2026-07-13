@@ -3,6 +3,16 @@ package com.kastack.vidyanet.models.settings
 import kotlinx.serialization.Serializable
 
 @Serializable
+enum class NotificationChannel {
+    EMAIL, SMS, PUSH
+}
+
+@Serializable
+enum class NotificationCategory {
+    ACADEMIC, FINANCE, ADMINISTRATION
+}
+
+@Serializable
 data class NotificationChannelSettings(
     val emailEnabled: Boolean = true,
     val smsEnabled: Boolean = false,
@@ -21,11 +31,6 @@ data class NotificationEventRule(
 )
 
 @Serializable
-enum class NotificationCategory {
-    ACADEMIC, FINANCE, ADMINISTRATION
-}
-
-@Serializable
 data class NotificationTemplateDto(
     val eventId: String,
     val channel: NotificationChannel,
@@ -33,6 +38,16 @@ data class NotificationTemplateDto(
 )
 
 @Serializable
-enum class NotificationChannel {
-    EMAIL, SMS, PUSH
-}
+data class NotificationSettingsDto(
+    val schoolId: Long,
+    val channels: NotificationChannelSettings,
+    val eventRules: List<NotificationEventRule>,
+    val templates: List<NotificationTemplateDto>
+)
+
+@Serializable
+data class UpdateNotificationSettingsRequest(
+    val channels: NotificationChannelSettings? = null,
+    val eventRules: List<NotificationEventRule>? = null,
+    val templates: List<NotificationTemplateDto>? = null
+)

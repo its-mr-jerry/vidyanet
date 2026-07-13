@@ -1,0 +1,1 @@
+ALTER TABLE audit_logs ALTER COLUMN school_id DROP NOT NULL;

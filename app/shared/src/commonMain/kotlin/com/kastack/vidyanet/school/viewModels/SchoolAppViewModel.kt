@@ -2,9 +2,12 @@ package com.kastack.vidyanet.school.viewModels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.kastack.vidyanet.core.GlobalStore
 import com.kastack.vidyanet.data.repositories.SchoolRepository
+import com.kastack.vidyanet.data.repositories.UserRepository
 import com.kastack.vidyanet.models.schoolUser.SchoolDto
 import com.kastack.vidyanet.models.schoolUser.AcademicSettingsDto
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,7 +21,9 @@ data class SchoolAppUiState(
 )
 
 class SchoolAppViewModel(
-    private val schoolRepository: SchoolRepository
+    private val schoolRepository: SchoolRepository,
+    private val userRepository: UserRepository,
+    private val globalStore: GlobalStore
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(SchoolAppUiState())
     val uiState: StateFlow<SchoolAppUiState> = _uiState.asStateFlow()
@@ -28,14 +33,23 @@ class SchoolAppViewModel(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
             
-            val schoolResult = schoolRepository.getSchoolById(id)
-            val settingsResult = schoolRepository.getAcademicSettings(id)
+            val schoolDeferred = async { schoolRepository.getSchoolById(id) }
+            val settingsDeferred = async { schoolRepository.getAcademicSettings(id) }
+            val userDeferred = async { userRepository.getMe() }
+            
+            val schoolResult = schoolDeferred.await()
+            val settingsResult = settingsDeferred.await()
+            val userResult = userDeferred.await()
+
+            userResult.onSuccess { user ->
+                globalStore.updateCurrentUser(user)
+            }
             
             _uiState.value = _uiState.value.copy(
                 school = schoolResult.getOrNull(),
                 academicSettings = settingsResult.getOrNull(),
                 isLoading = false,
-                unreadNotifications = 0 // Initialize with 0 or fetch from real service
+                unreadNotifications = 0
             )
         }
     }

@@ -45,10 +45,10 @@ fun SchoolNavHost(
                     SchoolDestination.SettingsAcademic -> AcademicSettings(schoolId = schoolId)
                     SchoolDestination.SettingsUserManagement -> UserManagement(schoolId = schoolId)
                     SchoolDestination.SettingsRolesPermissions -> RolesPermissions()
-                    SchoolDestination.SettingsNotifications -> NotificationSettings()
+                    SchoolDestination.SettingsNotifications -> NotificationSettings(schoolId = schoolId)
                     SchoolDestination.SettingsIntegrations -> Integrations()
                     SchoolDestination.SettingsBackupRestore -> BackupRestore()
-                    SchoolDestination.SettingsAuditLogs -> AuditLogs()
+                    SchoolDestination.SettingsAuditLogs -> AuditLogs(schoolId = schoolId)
                     else -> PlaceholderScreen(destination.toString(), schoolId)
                 }
             }

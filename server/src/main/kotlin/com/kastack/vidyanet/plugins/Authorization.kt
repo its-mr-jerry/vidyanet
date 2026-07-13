@@ -27,34 +27,31 @@ val RoleBasedAuthorization = createRouteScopedPlugin(
         val userType = principal.payload.getClaim("userType").asString()
         val userRoles = principal.payload.getClaim("roles").asList(String::class.java) ?: emptyList()
         
-        val userIdClaim = try {
-            principal.payload.getClaim("userId").asLong()
-        } catch (e: Exception) {
-            principal.payload.getClaim("userId").asInt()?.toLong()
-        }
-        
-        val schoolIdClaim = try {
-            principal.payload.getClaim("schoolId").asLong()
-        } catch (e: Exception) {
-            principal.payload.getClaim("schoolId").asInt()?.toLong()
-        }
+        val isPlatformOwner = userType == UserType.PLATFORM_OWNER.name
 
         // 1. Role/Type Check
         if (userTypes.isNotEmpty() || roles.isNotEmpty()) {
             val hasUserType = userTypes.isEmpty() || userTypes.any { it.name == userType }
             val hasRole = roles.isEmpty() || roles.any { it in userRoles }
 
-            if (!hasUserType && !hasRole) {
+            // Platform Owners are automatically authorized for any role-gated route
+            if (!hasUserType && !hasRole && !isPlatformOwner) {
                 call.respond(HttpStatusCode.Forbidden, mapOf("message" to "Insufficient permissions"))
                 return@on
             }
         }
 
         // 2. Ownership Check (Multi-tenancy isolation)
-        // Platform Owners can bypass school-level restrictions
-        if (userType != UserType.PLATFORM_OWNER.name) {
+        // Platform Owners can bypass school-level and user-level restrictions
+        if (!isPlatformOwner) {
             // Check School Access if schoolId is in path
             call.parameters["schoolId"]?.toLongOrNull()?.let { pathSchoolId ->
+                val schoolIdClaim = try {
+                    principal.payload.getClaim("schoolId").asLong()
+                } catch (e: Exception) {
+                    principal.payload.getClaim("schoolId").asInt()?.toLong()
+                }
+
                 if (schoolIdClaim != pathSchoolId) {
                     call.respond(HttpStatusCode.Forbidden, mapOf("message" to "Access denied: This data belongs to another school"))
                     return@on
@@ -63,12 +60,14 @@ val RoleBasedAuthorization = createRouteScopedPlugin(
 
             // Check User Access if userId is in path
             call.parameters["userId"]?.toLongOrNull()?.let { pathUserId ->
+                val userIdClaim = try {
+                    principal.payload.getClaim("userId").asLong()
+                } catch (e: Exception) {
+                    principal.payload.getClaim("userId").asInt()?.toLong()
+                }
+
                 if (userIdClaim != pathUserId) {
                     // School Admins can access their own school's users
-                    // This is a simplified check; in a production app, we'd verify the target user's schoolId here too.
-                    // But since pathSchoolId is already verified above for the route, 
-                    // and users are usually under /schools/{schoolId}/users/{userId}, it's often covered.
-                    // For now, let's enforce that you can only access YOUR OWN user data unless you are an admin.
                     val isSchoolAdmin = userRoles.contains("SCHOOL_ADMIN")
                     if (!isSchoolAdmin) {
                         call.respond(HttpStatusCode.Forbidden, mapOf("message" to "Access denied to user data"))
@@ -79,9 +78,13 @@ val RoleBasedAuthorization = createRouteScopedPlugin(
         }
 
         // 3. Granular Permission Check
-        if (requiredPermission != null) {
-            // In a real system, we'd fetch this from a cache (like Redis) or the database
-            // For now, we will perform a quick DB check to see if any of the user's roles have this permission
+        if (requiredPermission != null && !isPlatformOwner) {
+            val userIdClaim = try {
+                principal.payload.getClaim("userId").asLong()
+            } catch (e: Exception) {
+                principal.payload.getClaim("userId").asInt()?.toLong()
+            }
+
             val hasPermission = checkUserPermission(userIdClaim!!, requiredPermission)
             if (!hasPermission) {
                 call.respond(HttpStatusCode.Forbidden, mapOf("message" to "You do not have the required permission: $requiredPermission"))

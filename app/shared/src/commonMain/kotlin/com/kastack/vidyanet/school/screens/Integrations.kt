@@ -43,7 +43,7 @@ fun Integrations(
     Column(modifier = Modifier.fillMaxSize()) {
         SchoolSettingsHeader(
             title = "Integrations & API",
-            subtitle = "Connect EduCore with external tools and manage API access.",
+            subtitle = "Connect VidyaNet with external tools and manage API access.",
             breadcrumbs = listOf("Settings", "Integrations")
         )
 
@@ -235,7 +235,7 @@ private fun ApiKeyManagementSection(
                     ) {
                         Column {
                             AppText("API Key Management", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                            AppText("Authenticated keys for direct access to EduCore ERP endpoints.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            AppText("Authenticated keys for direct access to VidyaNet ERP endpoints.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         AdaptiveIconButton(
                             label = "Generate New Key",
@@ -250,7 +250,7 @@ private fun ApiKeyManagementSection(
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         Column {
                             AppText("API Key Management", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                            AppText("Authenticated keys for direct access to EduCore ERP endpoints.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            AppText("Authenticated keys for direct access to VidyaNet ERP endpoints.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         AdaptiveIconButton(
                             label = "Generate New Key",

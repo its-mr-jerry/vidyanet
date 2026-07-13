@@ -2,8 +2,10 @@ package com.kastack.vidyanet.school.viewModels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.kastack.vidyanet.core.GlobalStore
+import com.kastack.vidyanet.data.repositories.SchoolRepository
 import com.kastack.vidyanet.models.settings.*
-import kotlinx.coroutines.delay
+import com.kastack.vidyanet.validators.NotificationValidator
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,39 +15,53 @@ import kotlin.time.Duration.Companion.milliseconds
 data class NotificationSettingsUiState(
     val channels: NotificationChannelSettings = NotificationChannelSettings(),
     val eventRules: List<NotificationEventRule> = emptyList(),
+    val templates: List<NotificationTemplateDto> = emptyList(),
     val isLoading: Boolean = false,
     val isSaving: Boolean = false,
     val saveSuccess: Boolean = false,
+    val canEdit: Boolean = false,
+    val error: String? = null,
     val selectedEventId: String = "student_attendance",
     val selectedChannel: NotificationChannel = NotificationChannel.SMS,
-    val templateContent: String = "Dear Parent, your child [Student_Name] is absent today, [Date]. Please contact the school office."
+    val templateContent: String = ""
 )
 
-class NotificationSettingsViewModel : ViewModel() {
+class NotificationSettingsViewModel(
+    private val schoolRepository: SchoolRepository,
+    private val globalStore: GlobalStore
+) : ViewModel() {
     private val _uiState = MutableStateFlow(NotificationSettingsUiState())
     val uiState: StateFlow<NotificationSettingsUiState> = _uiState.asStateFlow()
+    private var currentSchoolId: String? = null
 
-    init {
-        loadSettings()
+    fun loadSettings(schoolId: String) {
+        currentSchoolId = schoolId
+        val id = schoolId.toLongOrNull() ?: return
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                isLoading = true,
+                canEdit = globalStore.hasPermission("SETTINGS", "EDIT")
+            )
+            schoolRepository.getNotificationSettings(id)
+                .onSuccess { settings ->
+                    _uiState.value = _uiState.value.copy(
+                        channels = settings.channels,
+                        eventRules = settings.eventRules,
+                        templates = settings.templates,
+                        isLoading = false
+                    )
+                    updateTemplatePreview()
+                }
+                .onFailure { error ->
+                    _uiState.value = _uiState.value.copy(isLoading = false, error = error.message)
+                }
+        }
     }
 
-    private fun loadSettings() {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
-            delay(500.milliseconds)
-            
-            val mockRules = listOf(
-                NotificationEventRule("exam_result", "Exam Result Published", "Notify parents and students when results are released.", NotificationCategory.ACADEMIC, true, false, true),
-                NotificationEventRule("student_attendance", "Student Attendance", "Daily absent notification to parents.", NotificationCategory.ACADEMIC, true, true, true),
-                NotificationEventRule("fee_due", "Fee Due Reminder", "Recurring reminders for upcoming or late fee payments.", NotificationCategory.FINANCE, true, true, false),
-                NotificationEventRule("staff_meeting", "Staff Meeting", "Calendar updates and staff announcement reminders.", NotificationCategory.ADMINISTRATION, true, false, true)
-            )
-            
-            _uiState.value = _uiState.value.copy(
-                eventRules = mockRules,
-                isLoading = false
-            )
-        }
+    private fun updateTemplatePreview() {
+        val state = _uiState.value
+        val template = state.templates.find { it.eventId == state.selectedEventId && it.channel == state.selectedChannel }
+        _uiState.value = state.copy(templateContent = template?.content ?: "No template defined for this event and channel.")
     }
 
     fun updateChannelEnabled(channel: NotificationChannel, enabled: Boolean) {
@@ -73,20 +89,54 @@ class NotificationSettingsViewModel : ViewModel() {
 
     fun selectTemplate(eventId: String, channel: NotificationChannel) {
         _uiState.value = _uiState.value.copy(selectedEventId = eventId, selectedChannel = channel)
-        // In real app, load template content from repository
+        updateTemplatePreview()
     }
 
     fun updateTemplateContent(content: String) {
-        _uiState.value = _uiState.value.copy(templateContent = content)
+        val state = _uiState.value
+        val updatedTemplates = state.templates.toMutableList()
+        val index = updatedTemplates.indexOfFirst { it.eventId == state.selectedEventId && it.channel == state.selectedChannel }
+        
+        val newTemplate = NotificationTemplateDto(state.selectedEventId, state.selectedChannel, content)
+        if (index != -1) {
+            updatedTemplates[index] = newTemplate
+        } else {
+            updatedTemplates.add(newTemplate)
+        }
+        
+        _uiState.value = state.copy(templateContent = content, templates = updatedTemplates)
     }
 
     fun saveSettings() {
+        val schoolId = currentSchoolId?.toLongOrNull() ?: return
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isSaving = true)
-            delay(1000.milliseconds)
-            _uiState.value = _uiState.value.copy(isSaving = false, saveSuccess = true)
-            delay(3000.milliseconds)
-            _uiState.value = _uiState.value.copy(saveSuccess = false)
+            _uiState.value = _uiState.value.copy(isSaving = true, error = null)
+            val request = UpdateNotificationSettingsRequest(
+                channels = _uiState.value.channels,
+                eventRules = _uiState.value.eventRules,
+                templates = _uiState.value.templates
+            )
+
+            try {
+                NotificationValidator.validateUpdate(request)
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(isSaving = false, error = e.message)
+                return@launch
+            }
+
+            schoolRepository.updateNotificationSettings(schoolId, request)
+                .onSuccess {
+                    _uiState.value = _uiState.value.copy(isSaving = false, saveSuccess = true)
+                    kotlinx.coroutines.delay(3000.milliseconds)
+                    _uiState.value = _uiState.value.copy(saveSuccess = false)
+                }
+                .onFailure { error ->
+                    _uiState.value = _uiState.value.copy(isSaving = false, error = error.message)
+                }
         }
+    }
+
+    fun clearError() {
+        _uiState.value = _uiState.value.copy(error = null)
     }
 }

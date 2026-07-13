@@ -1,9 +1,9 @@
 package com.kastack.vidyanet.services.user
 
-import com.kastack.vidyanet.models.user.CreateUserRequest
-import com.kastack.vidyanet.models.user.UpdateUserRequest
-import com.kastack.vidyanet.models.user.UserStatus
-import com.kastack.vidyanet.models.user.UserType
+import com.kastack.vidyanet.models.audit.AuditStatus
+import com.kastack.vidyanet.models.user.*
+import com.kastack.vidyanet.plugins.userId
+import com.kastack.vidyanet.services.audit.AuditLogService
 import com.kastack.vidyanet.validators.UserValidator
 import io.ktor.server.application.*
 import io.ktor.server.request.*
@@ -12,7 +12,10 @@ import io.ktor.http.*
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.principal
 
-class UserController(private val userService: UserService = UserService()) : UserRules() {
+class UserController(
+    private val userService: UserService = UserService(),
+    private val auditLogService: AuditLogService = AuditLogService()
+) : UserRules() {
 
     override suspend fun getAllUsers(call: ApplicationCall) {
         val search = call.request.queryParameters["search"]
@@ -26,7 +29,7 @@ class UserController(private val userService: UserService = UserService()) : Use
         val principal = call.principal<JWTPrincipal>()
         val currentUserType = principal?.payload?.getClaim("userType")?.asString()?.let { UserType.valueOf(it) }
         val schoolId = if (currentUserType == UserType.SCHOOL_USER) {
-            principal.payload?.getClaim("schoolId")?.asLong()
+            principal.payload.getClaim("schoolId")?.asLong()
         } else {
             call.request.queryParameters["schoolId"]?.toLongOrNull()
         }
@@ -60,7 +63,20 @@ class UserController(private val userService: UserService = UserService()) : Use
             request
         }
         
-        call.respond(HttpStatusCode.Created, userService.createUser(finalRequest))
+        val result = userService.createUser(finalRequest)
+
+        auditLogService.logAction(
+            schoolId = finalRequest.schoolId,
+            userId = call.userId,
+            action = "Invited User",
+            actionDetails = "Invited ${finalRequest.fullName} (${finalRequest.email})",
+            module = "STAFF",
+            status = AuditStatus.SUCCESS,
+            ipAddress = call.request.local.remoteAddress,
+            userAgent = call.request.headers["User-Agent"]
+        )
+
+        call.respond(HttpStatusCode.Created, result)
     }
 
     override suspend fun updateUser(call: ApplicationCall) {
@@ -84,21 +100,44 @@ class UserController(private val userService: UserService = UserService()) : Use
             }
         }
 
-        call.respond(userService.updateUser(id, request))
+        val result = userService.updateUser(id, request)
+
+        auditLogService.logAction(
+            schoolId = result.schoolId,
+            userId = call.userId,
+            action = "Updated User",
+            actionDetails = "Modified status or roles for user ID: $id",
+            module = "STAFF",
+            status = AuditStatus.SUCCESS,
+            ipAddress = call.request.local.remoteAddress,
+            userAgent = call.request.headers["User-Agent"]
+        )
+
+        call.respond(result)
     }
 
     override suspend fun deleteUser(call: ApplicationCall) {
         val id = call.parameters["userId"]?.toLongOrNull()
             ?: return call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Invalid ID"))
         
+        val user = userService.getUser(id)
         userService.deleteUser(id)
+        
+        auditLogService.logAction(
+            schoolId = user.schoolId,
+            userId = call.userId,
+            action = "Deleted User",
+            actionDetails = "Removed user: ${user.fullName}",
+            module = "STAFF",
+            status = AuditStatus.SUCCESS,
+            ipAddress = call.request.local.remoteAddress,
+            userAgent = call.request.headers["User-Agent"]
+        )
         call.respond(HttpStatusCode.NoContent)
     }
     
     override suspend fun getMe(call: ApplicationCall) {
-        val principal = call.principal<JWTPrincipal>()
-        val userId = principal?.payload?.getClaim("userId")?.asLong() ?: throw Exception("Invalid Token")
-        call.respond(userService.getMe(userId))
+        val id = call.userId ?: return call.respond(HttpStatusCode.Unauthorized)
+        call.respond(userService.getMe(id))
     }
 }
-

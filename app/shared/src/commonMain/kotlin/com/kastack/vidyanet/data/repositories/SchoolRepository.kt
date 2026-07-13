@@ -2,6 +2,11 @@ package com.kastack.vidyanet.data.repositories
 
 import com.kastack.vidyanet.data.DatabaseManager
 import com.kastack.vidyanet.models.schoolUser.*
+import com.kastack.vidyanet.models.audit.AuditLogDto
+import com.kastack.vidyanet.models.audit.AuditStatus
+import com.kastack.vidyanet.models.PagedResponse
+import com.kastack.vidyanet.models.settings.NotificationSettingsDto
+import com.kastack.vidyanet.models.settings.UpdateNotificationSettingsRequest
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
@@ -21,6 +26,16 @@ interface SchoolRepository {
     suspend fun deleteAcademicSession(schoolId: Long, sessionId: Long): Result<Unit>
     suspend fun addHoliday(schoolId: Long, holiday: HolidayDto): Result<Unit>
     suspend fun deleteHoliday(schoolId: Long, holidayId: Long): Result<Unit>
+    suspend fun getNotificationSettings(schoolId: Long): Result<NotificationSettingsDto>
+    suspend fun updateNotificationSettings(schoolId: Long, request: UpdateNotificationSettingsRequest): Result<Unit>
+    suspend fun getAuditLogs(
+        schoolId: Long,
+        search: String? = null,
+        module: String? = null,
+        status: AuditStatus? = null,
+        page: Int = 1,
+        pageSize: Int = 10
+    ): Result<PagedResponse<AuditLogDto>>
 }
 
 class SchoolRepositoryImpl(
@@ -176,6 +191,51 @@ class SchoolRepositoryImpl(
         }
         if (response.status != HttpStatusCode.OK) {
             throw Exception("Failed to delete holiday: ${response.status}")
+        }
+    }
+
+    override suspend fun getNotificationSettings(schoolId: Long): Result<NotificationSettingsDto> = runCatching {
+        val response = httpClient.get("schools/$schoolId/notification-settings") {
+            authHeader()
+        }
+        if (response.status == HttpStatusCode.OK) {
+            response.body<NotificationSettingsDto>()
+        } else {
+            throw Exception("Failed to fetch notification settings: ${response.status}")
+        }
+    }
+
+    override suspend fun updateNotificationSettings(schoolId: Long, request: UpdateNotificationSettingsRequest): Result<Unit> = runCatching {
+        val response = httpClient.put("schools/$schoolId/notification-settings") {
+            authHeader()
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }
+        if (response.status != HttpStatusCode.OK) {
+            throw Exception("Failed to update notification settings: ${response.status}")
+        }
+    }
+
+    override suspend fun getAuditLogs(
+        schoolId: Long,
+        search: String?,
+        module: String?,
+        status: AuditStatus?,
+        page: Int,
+        pageSize: Int
+    ): Result<PagedResponse<AuditLogDto>> = runCatching {
+        val response = httpClient.get("schools/$schoolId/audit-logs") {
+            authHeader()
+            search?.let { parameter("search", it) }
+            module?.let { parameter("module", it) }
+            status?.let { parameter("status", it.name) }
+            parameter("page", page)
+            parameter("pageSize", pageSize)
+        }
+        if (response.status == HttpStatusCode.OK) {
+            response.body<PagedResponse<AuditLogDto>>()
+        } else {
+            throw Exception("Failed to fetch audit logs: ${response.status}")
         }
     }
 }

@@ -11,10 +11,11 @@ enum class AuditStatus {
 @Serializable
 data class AuditLogDto(
     val id: Long,
+    val schoolId: Long?,
     val timestamp: Instant,
-    val userId: Long,
-    val userName: String,
-    val userRole: String,
+    val userId: Long?,
+    val userName: String?,
+    val userRole: String?,
     val action: String,
     val actionDetails: String? = null,
     val module: String,
@@ -22,3 +23,4 @@ data class AuditLogDto(
     val ipAddress: String? = null,
     val userAgent: String? = null
 )
+
