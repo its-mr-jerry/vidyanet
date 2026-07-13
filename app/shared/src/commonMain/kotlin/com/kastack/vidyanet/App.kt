@@ -1,32 +1,30 @@
 package com.kastack.vidyanet
 
-import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
-import com.kastack.vidyanet.navigations.AuthDestination
-import com.kastack.vidyanet.navigations.AuthNavHost
-import com.kastack.vidyanet.navigations.MainDestination
-import com.kastack.vidyanet.theme.VidyaNetTheme
-import androidx.navigation3.runtime.NavBackStack
-
-import com.kastack.vidyanet.navigations.BrowserHistorySync
-
-import com.kastack.vidyanet.superAdmin.screens.SuperAdminDashboard
-
-import com.kastack.vidyanet.superAdmin.SuperAdminDestination
-import com.kastack.vidyanet.superAdmin.SuperAdminNavHost
-import com.kastack.vidyanet.school.SchoolDestination
-import com.kastack.vidyanet.school.SchoolNavHost
-import org.koin.compose.koinInject
-
-import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.navigation3.runtime.NavBackStack
 import com.kastack.vidyanet.core.GlobalStore
 import com.kastack.vidyanet.data.DatabaseManager
 import com.kastack.vidyanet.data.repositories.UserRepository
-import org.koin.compose.koinInject
+import com.kastack.vidyanet.navigations.AuthDestination
+import com.kastack.vidyanet.navigations.AuthNavHost
+import com.kastack.vidyanet.navigations.BrowserHistorySync
+import com.kastack.vidyanet.navigations.MainDestination
+import com.kastack.vidyanet.school.SchoolDestination
+import com.kastack.vidyanet.school.SchoolNavHost
+import com.kastack.vidyanet.superAdmin.SuperAdminDestination
+import com.kastack.vidyanet.superAdmin.SuperAdminNavHost
+import com.kastack.vidyanet.theme.VidyaNetTheme
 import kotlinx.coroutines.delay
+import org.koin.compose.koinInject
 import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
