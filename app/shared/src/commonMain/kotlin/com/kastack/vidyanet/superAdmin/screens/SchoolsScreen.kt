@@ -36,6 +36,7 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun SchoolsScreen(
     onNavigate: (String) -> Unit,
+    onLogout: () -> Unit,
     onSchoolClick: (String) -> Unit,
     viewModel: SchoolsViewModel = koinViewModel()
 ) {
@@ -78,7 +79,11 @@ fun SchoolsScreen(
     ) { padding ->
         SuperAdminLayout(
             currentDestination = "Schools",
-            onNavigate = onNavigate
+            onNavigate = onNavigate,
+            onLogout = {
+                viewModel.logout()
+                onLogout()
+            }
         ) {
             Column(modifier = Modifier.fillMaxSize().padding(padding)) {
                 // Header Section

@@ -21,6 +21,9 @@ class SplashViewModel(
     private val _isSuperAdmin = MutableStateFlow<Boolean>(false)
     val isSuperAdmin = _isSuperAdmin.asStateFlow()
 
+    private val _userSchoolId = MutableStateFlow<String?>(null)
+    val userSchoolId = _userSchoolId.asStateFlow()
+
     init {
         checkAuth()
     }
@@ -36,6 +39,7 @@ class SplashViewModel(
 
             userRepository.getMe().onSuccess { user ->
                 _isSuperAdmin.value = user.userType == UserType.PLATFORM_OWNER
+                _userSchoolId.value = user.schoolId?.toString()
                 _isLoggedIn.value = true
             }.onFailure {
                 databaseManager.remove("auth_token")

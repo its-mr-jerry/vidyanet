@@ -23,6 +23,7 @@ import androidx.compose.ui.Alignment
 fun SchoolNavHost(
     schoolId: String,
     backStack: NavBackStack<SchoolDestination>,
+    onLogout: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     SchoolApp(
@@ -32,7 +33,8 @@ fun SchoolNavHost(
             if (backStack.last() != dest) {
                 backStack.add(dest) 
             }
-        }
+        },
+        onLogout = onLogout
     ) { padding ->
         NavDisplay(
             backStack = backStack,

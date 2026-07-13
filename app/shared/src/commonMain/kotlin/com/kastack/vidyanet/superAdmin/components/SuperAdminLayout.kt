@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -23,6 +24,7 @@ import com.kastack.vidyanet.commonUi.components.AppText
 fun SuperAdminLayout(
     currentDestination: String,
     onNavigate: (String) -> Unit,
+    onLogout: () -> Unit,
     academicYear: String = "2023-24",
     content: @Composable (PaddingValues) -> Unit
 ) {
@@ -30,6 +32,7 @@ fun SuperAdminLayout(
         Sidebar(
             currentDestination = currentDestination,
             onNavigate = onNavigate,
+            onLogout = onLogout,
             modifier = Modifier.width(280.dp).fillMaxHeight()
         )
 
@@ -46,6 +49,7 @@ fun SuperAdminLayout(
 private fun Sidebar(
     currentDestination: String,
     onNavigate: (String) -> Unit,
+    onLogout: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -94,6 +98,17 @@ private fun Sidebar(
                 SidebarItem("Reports & Analytics", Icons.Default.Analytics, active = false, onClick = {})
                 SidebarItem("System Settings", Icons.Default.Settings, active = false, onClick = {})
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f))
+            Spacer(modifier = Modifier.height(16.dp))
+            SidebarItem(
+                label = "Logout",
+                icon = Icons.AutoMirrored.Filled.Logout,
+                active = false,
+                onClick = onLogout,
+                color = MaterialTheme.colorScheme.errorContainer
+            )
         }
     }
 }
@@ -103,7 +118,8 @@ private fun SidebarItem(
     label: String,
     icon: ImageVector,
     active: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    color: Color = Color.Unspecified
 ) {
     Surface(
         onClick = onClick,
@@ -119,14 +135,14 @@ private fun SidebarItem(
                 imageVector = icon,
                 contentDescription = null,
                 modifier = Modifier.size(24.dp),
-                tint = if (active) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+                tint = if (active) MaterialTheme.colorScheme.onPrimaryContainer else if (color != Color.Unspecified) color else MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
             )
             Spacer(modifier = Modifier.width(12.dp))
             AppText(
                 text = label,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = if (active) FontWeight.Bold else FontWeight.Normal,
-                color = if (active) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+                color = if (active) MaterialTheme.colorScheme.onPrimaryContainer else if (color != Color.Unspecified) color else MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
             )
         }
     }

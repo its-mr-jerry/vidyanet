@@ -3,6 +3,8 @@ package com.kastack.vidyanet.navigations
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
 import androidx.navigation3.runtime.NavBackStack
 import kotlinx.browser.window
 import org.w3c.dom.events.Event
@@ -29,18 +31,36 @@ actual fun BrowserHistorySync(
     } else null
 
     val currentPath = getPathForDestinations(currentMain, currentAuth, currentSuperAdmin, currentSchool)
+    val hashPath = "#$currentPath"
+    
+    val previousMain = remember { mutableStateOf<MainDestination?>(null) }
 
     // Update URL when state changes
-    LaunchedEffect(currentPath) {
-        if (window.location.pathname != currentPath) {
-            window.history.pushState(null, "", currentPath)
+    LaunchedEffect(hashPath) {
+        if (window.location.hash != hashPath) {
+            val isFromAuthToPanel = previousMain.value == MainDestination.Auth && 
+                                   (currentMain is MainDestination.School || currentMain == MainDestination.SuperAdmin)
+            
+            // Use replaceState for transitions that should not be in history
+            val isReplacing = isFromAuthToPanel || 
+                             currentAuth == AuthDestination.Login || 
+                             currentAuth == AuthDestination.Splash ||
+                             window.location.hash.isEmpty() ||
+                             window.location.hash == "#/"
+
+            if (isReplacing) {
+                window.history.replaceState(null, "", hashPath)
+            } else {
+                window.location.hash = hashPath
+            }
         }
+        previousMain.value = currentMain
     }
 
-    // Update state when URL changes (back/forward)
+    // Update state when URL changes (back/forward/manual entry)
     DisposableEffect(Unit) {
-        val onPopState = { _: Event ->
-            val state = getDestinationsForPath(window.location.pathname)
+        val onHashChange = { _: Event ->
+            val state = getDestinationsForPath(window.location.hash)
             
             if (mainBackStack.last() != state.main) {
                 mainBackStack.clear()
@@ -59,10 +79,12 @@ actual fun BrowserHistorySync(
                 schoolBackStack.add(state.school)
             }
         }
-        window.addEventListener("popstate", onPopState)
+        window.addEventListener("hashchange", onHashChange)
         
         // Handle initial path
-        val state = getDestinationsForPath(window.location.pathname)
+        val initialPath = window.location.hash.ifEmpty { hashPath }
+        val state = getDestinationsForPath(initialPath)
+        
         if (mainBackStack.last() != state.main) {
             mainBackStack.clear()
             mainBackStack.add(state.main)
@@ -81,7 +103,7 @@ actual fun BrowserHistorySync(
         }
 
         onDispose {
-            window.removeEventListener("popstate", onPopState)
+            window.removeEventListener("hashchange", onHashChange)
         }
     }
 }

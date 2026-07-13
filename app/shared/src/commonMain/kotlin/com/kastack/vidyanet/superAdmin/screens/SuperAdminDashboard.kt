@@ -31,6 +31,7 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun SuperAdminDashboard(
     onNavigate: (String) -> Unit,
+    onLogout: () -> Unit,
     viewModel: SuperAdminDashboardViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -38,6 +39,10 @@ fun SuperAdminDashboard(
     SuperAdminLayout(
         currentDestination = "Dashboard",
         onNavigate = onNavigate,
+        onLogout = {
+            viewModel.logout()
+            onLogout()
+        },
         academicYear = uiState.academicYear
     ) {
         Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainerLow)) {

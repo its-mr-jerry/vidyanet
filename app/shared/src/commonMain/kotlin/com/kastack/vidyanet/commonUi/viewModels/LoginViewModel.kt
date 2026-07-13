@@ -68,6 +68,8 @@ class LoginViewModel(
     private val _loginSuccess = MutableStateFlow(false)
     val loginSuccess = _loginSuccess.asStateFlow()
 
+    val currentUser = globalStore.currentUser
+
     fun verifyOtp() {
         if (_otp.value.length != 6) {
             _error.value = "Enter a valid 6-digit OTP"

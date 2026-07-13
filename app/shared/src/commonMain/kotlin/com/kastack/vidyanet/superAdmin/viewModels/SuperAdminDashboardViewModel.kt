@@ -1,6 +1,8 @@
 package com.kastack.vidyanet.superAdmin.viewModels
 
 import androidx.lifecycle.ViewModel
+import com.kastack.vidyanet.core.GlobalStore
+import com.kastack.vidyanet.data.DatabaseManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,12 +27,20 @@ data class SuperAdminDashboardUiState(
     val academicYear: String = "2023-24"
 )
 
-class SuperAdminDashboardViewModel : ViewModel() {
+class SuperAdminDashboardViewModel(
+    private val databaseManager: DatabaseManager,
+    private val globalStore: GlobalStore
+) : ViewModel() {
     private val _uiState = MutableStateFlow(SuperAdminDashboardUiState())
     val uiState: StateFlow<SuperAdminDashboardUiState> = _uiState.asStateFlow()
 
     init {
         loadDashboardData()
+    }
+
+    fun logout() {
+        databaseManager.clear()
+        globalStore.clear()
     }
 
     private fun loadDashboardData() {

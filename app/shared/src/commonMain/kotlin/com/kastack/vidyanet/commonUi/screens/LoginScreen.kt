@@ -51,10 +51,19 @@ fun LoginScreen(
     val phone by viewModel.phone.collectAsState()
     val otp by viewModel.otp.collectAsState()
     val loginSuccess by viewModel.loginSuccess.collectAsState()
+    val currentUser by viewModel.currentUser.collectAsState()
 
-    LaunchedEffect(loginSuccess) {
-        if (loginSuccess) {
-            onAuthenticated(MainDestination.SuperAdmin)
+    LaunchedEffect(loginSuccess, currentUser) {
+        if (loginSuccess && currentUser != null) {
+            val dest = if (currentUser?.userType == com.kastack.vidyanet.models.user.UserType.PLATFORM_OWNER) {
+                MainDestination.SuperAdmin
+            } else if (currentUser?.schoolId != null) {
+                MainDestination.School(currentUser?.schoolId.toString())
+            } else {
+                null
+            }
+
+            dest?.let { onAuthenticated(it) }
         }
     }
 

@@ -11,6 +11,7 @@ import com.kastack.vidyanet.superAdmin.screens.SuperAdminDashboard
 @Composable
 fun SuperAdminNavHost(
     backStack: NavBackStack<SuperAdminDestination>,
+    onLogout: () -> Unit,
     onNavigateToSchool: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -25,7 +26,8 @@ fun SuperAdminNavHost(
                         if (dest == "Schools") {
                             backStack.add(SuperAdminDestination.Schools)
                         }
-                    }
+                    },
+                    onLogout = onLogout
                 )
                 SuperAdminDestination.Schools -> SchoolsScreen(
                     onNavigate = { dest ->
@@ -34,6 +36,7 @@ fun SuperAdminNavHost(
                             backStack.add(SuperAdminDestination.Dashboard)
                         }
                     },
+                    onLogout = onLogout,
                     onSchoolClick = onNavigateToSchool
                 )
             }

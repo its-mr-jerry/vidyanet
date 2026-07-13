@@ -33,6 +33,7 @@ fun SchoolApp(
     schoolId: String,
     currentDestination: SchoolDestination,
     onNavigate: (SchoolDestination) -> Unit,
+    onLogout: () -> Unit,
     viewModel: SchoolAppViewModel = koinViewModel(),
     content: @Composable (PaddingValues) -> Unit
 ) {
@@ -66,6 +67,10 @@ fun SchoolApp(
                                 onNavigate(it)
                                 scope.launch { drawerState.close() }
                             },
+                            onLogout = {
+                                viewModel.logout()
+                                onLogout()
+                            },
                             schoolName = schoolName,
                             uiState = uiState
                         )
@@ -92,6 +97,10 @@ fun SchoolApp(
                         isCollapsed = isSidebarCollapsed,
                         currentDestination = currentDestination,
                         onNavigate = onNavigate,
+                        onLogout = {
+                            viewModel.logout()
+                            onLogout()
+                        },
                         schoolName = schoolName,
                         uiState = uiState
                     )
@@ -136,6 +145,7 @@ private fun SidebarContent(
     isCollapsed: Boolean,
     currentDestination: SchoolDestination,
     onNavigate: (SchoolDestination) -> Unit,
+    onLogout: () -> Unit,
     schoolName: String,
     uiState: com.kastack.vidyanet.school.viewModels.SchoolAppUiState
 ) {
@@ -583,7 +593,7 @@ private fun SidebarContent(
                 Icons.AutoMirrored.Filled.Logout, 
                 false, 
                 isCollapsed, 
-                onClick = {}, 
+                onClick = onLogout,
                 color = MaterialTheme.colorScheme.errorContainer
             )
         }

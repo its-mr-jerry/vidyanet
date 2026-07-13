@@ -3,6 +3,7 @@ package com.kastack.vidyanet.school.viewModels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kastack.vidyanet.core.GlobalStore
+import com.kastack.vidyanet.data.DatabaseManager
 import com.kastack.vidyanet.data.repositories.SchoolRepository
 import com.kastack.vidyanet.data.repositories.UserRepository
 import com.kastack.vidyanet.models.schoolUser.SchoolDto
@@ -23,6 +24,7 @@ data class SchoolAppUiState(
 class SchoolAppViewModel(
     private val schoolRepository: SchoolRepository,
     private val userRepository: UserRepository,
+    private val databaseManager: DatabaseManager,
     private val globalStore: GlobalStore
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(SchoolAppUiState())
@@ -52,5 +54,10 @@ class SchoolAppViewModel(
                 unreadNotifications = 0
             )
         }
+    }
+
+    fun logout() {
+        databaseManager.clear()
+        globalStore.clear()
     }
 }

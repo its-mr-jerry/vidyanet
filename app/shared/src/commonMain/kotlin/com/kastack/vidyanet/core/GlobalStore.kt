@@ -41,6 +41,10 @@ class GlobalStore {
         _systemConfig.value = config
     }
 
-
+    fun clear() {
+        _currentUser.value = null
+        _adminName.value = "Super Admin"
+        _systemConfig.value = null
+    }
 }
 

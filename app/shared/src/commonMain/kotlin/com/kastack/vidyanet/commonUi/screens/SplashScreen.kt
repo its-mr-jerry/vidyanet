@@ -71,14 +71,17 @@ fun SplashScreen(
 ) {
     val isLoggedIn by viewModel.isLoggedIn.collectAsState()
     val isSuperAdmin by viewModel.isSuperAdmin.collectAsState()
+    val schoolId by viewModel.userSchoolId.collectAsState()
 
-    LaunchedEffect(isLoggedIn, isSuperAdmin) {
+    LaunchedEffect(isLoggedIn, isSuperAdmin, schoolId) {
         if (isLoggedIn != null) {
             delay(3.seconds) // Match the 3s loading animation
             when (isLoggedIn) {
                 true -> {
                     if (isSuperAdmin) {
                         onNavigate(MainDestination.SuperAdmin)
+                    } else if (schoolId != null) {
+                        onNavigate(MainDestination.School(schoolId!!))
                     } else {
                         onLoginRequired()
                     }
