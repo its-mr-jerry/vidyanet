@@ -1,6 +1,7 @@
 package com.kastack.vidyanet.core
 
 
+import com.kastack.vidyanet.models.role.PermissionAction
 import com.kastack.vidyanet.models.system.SystemConfigDto
 import com.kastack.vidyanet.models.user.UserDto
 import com.kastack.vidyanet.models.user.UserType
@@ -27,6 +28,14 @@ class GlobalStore {
     fun updateCurrentUser(user: UserDto) {
         _currentUser.value = user
         _adminName.value = user.fullName ?: "User"
+    }
+
+    fun hasPermission(module: String, action: PermissionAction): Boolean {
+        val user = _currentUser.value ?: return false
+        if (user.userType == UserType.PLATFORM_OWNER) return true
+        
+        val permString = "${module.uppercase()}_${action.name}"
+        return user.permissions.contains(permString)
     }
 
     fun hasPermission(module: String, action: String): Boolean {

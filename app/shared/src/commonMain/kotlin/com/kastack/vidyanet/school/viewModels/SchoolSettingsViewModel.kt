@@ -9,6 +9,7 @@ import com.kastack.vidyanet.data.repositories.SchoolRepository
 import com.kastack.vidyanet.models.schoolUser.SchoolDto
 import com.kastack.vidyanet.models.schoolUser.SchoolSettingsDto
 import com.kastack.vidyanet.models.schoolUser.UpdateSchoolSettingsRequest
+import com.kastack.vidyanet.permissions.PermissionSchema
 import com.kastack.vidyanet.validators.SchoolSettingsValidator
 import com.kastack.vidyanet.validators.ValidationException
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -40,7 +41,7 @@ class SchoolSettingsViewModel(
             _uiState.value = _uiState.value.copy(
                 isLoading = true, 
                 error = null,
-                canEdit = globalStore.hasPermission("SETTINGS", "EDIT")
+                canEdit = globalStore.hasPermission(PermissionSchema.Settings.MODULE, "EDIT")
             )
             
             val schoolResult = schoolRepository.getSchoolById(id)

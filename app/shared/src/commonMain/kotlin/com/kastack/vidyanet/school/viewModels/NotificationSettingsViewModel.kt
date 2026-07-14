@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.kastack.vidyanet.core.GlobalStore
 import com.kastack.vidyanet.data.repositories.SchoolRepository
 import com.kastack.vidyanet.models.settings.*
+import com.kastack.vidyanet.permissions.PermissionSchema
 import com.kastack.vidyanet.validators.NotificationValidator
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -40,7 +41,7 @@ class NotificationSettingsViewModel(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(
                 isLoading = true,
-                canEdit = globalStore.hasPermission("SETTINGS", "EDIT")
+                canEdit = globalStore.hasPermission(PermissionSchema.Settings.MODULE, "EDIT")
             )
             schoolRepository.getNotificationSettings(id)
                 .onSuccess { settings ->

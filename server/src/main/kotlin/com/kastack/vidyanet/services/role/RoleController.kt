@@ -22,17 +22,20 @@ class RoleController(
 ) : RoleRules() {
 
     override suspend fun getAllRoles(call: ApplicationCall) {
-        call.respond(roleService.getAllRoles())
+        call.respond(roleService.getAllRoles(call.schoolId))
     }
 
     override suspend fun getRoleById(call: ApplicationCall) {
         val id = call.parameters["id"]?.toLongOrNull() ?: return call.respond(HttpStatusCode.BadRequest, "Invalid ID")
-        val role = roleService.getRoleById(id) ?: return call.respond(HttpStatusCode.NotFound)
+        val role = roleService.getRoleById(id, call.schoolId) ?: return call.respond(HttpStatusCode.NotFound)
         call.respond(role)
     }
 
     override suspend fun createRole(call: ApplicationCall) {
-        val request = call.receive<CreateRoleRequest>()
+        val request = call.receive<CreateRoleRequest>().let { 
+            // Ensure schoolId is set from token for security
+            if (it.schoolId == null) it.copy(schoolId = call.schoolId) else it
+        }
         RoleValidator.validateCreate(request)
         val role = roleService.createRole(request)
         
@@ -55,7 +58,7 @@ class RoleController(
         val request = call.receive<UpdateRoleRequest>()
         RoleValidator.validateUpdate(request)
         try {
-            val role = roleService.updateRole(id, request)
+            val role = roleService.updateRole(id, request, call.schoolId)
 
             auditLogService.logAction(
                 schoolId = call.schoolId,
@@ -77,7 +80,7 @@ class RoleController(
     override suspend fun deleteRole(call: ApplicationCall) {
         val id = call.parameters["id"]?.toLongOrNull() ?: return call.respond(HttpStatusCode.BadRequest, "Invalid ID")
         try {
-            if (roleService.deleteRole(id)) {
+            if (roleService.deleteRole(id, call.schoolId)) {
                 auditLogService.logAction(
                     schoolId = call.schoolId,
                     userId = call.userId,
@@ -149,7 +152,7 @@ class RoleController(
     override suspend fun getRolePermissions(call: ApplicationCall) {
         val id = call.parameters["id"]?.toLongOrNull() ?: return call.respond(HttpStatusCode.BadRequest, "Invalid ID")
         try {
-            call.respond(roleService.getRolePermissions(id))
+            call.respond(roleService.getRolePermissions(id, call.schoolId))
         } catch (e: IllegalArgumentException) {
             call.respond(HttpStatusCode.NotFound, e.message ?: "Role not found")
         }
@@ -159,7 +162,7 @@ class RoleController(
         val id = call.parameters["id"]?.toLongOrNull() ?: return call.respond(HttpStatusCode.BadRequest, "Invalid ID")
         val request = call.receive<RolePermissionsDto>()
         try {
-            roleService.updateRolePermissions(id, request)
+            roleService.updateRolePermissions(id, request, call.schoolId)
 
             auditLogService.logAction(
                 schoolId = call.schoolId, // Log against current user's school

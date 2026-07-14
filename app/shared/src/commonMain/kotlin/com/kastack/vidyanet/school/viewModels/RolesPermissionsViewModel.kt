@@ -108,6 +108,24 @@ class RolesPermissionsViewModel(
         }
     }
 
+    fun createRole(name: String, code: String, description: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isSaving = true)
+            val request = CreateRoleRequest(
+                roleCode = code.uppercase(),
+                roleName = name,
+                description = description,
+                isSystemRole = false
+            )
+            roleRepository.createRole(request).onSuccess {
+                _uiState.value = _uiState.value.copy(isSaving = false)
+                loadData()
+            }.onFailure { error ->
+                _uiState.value = _uiState.value.copy(isSaving = false, error = error.message)
+            }
+        }
+    }
+
     fun resetSaveSuccess() {
         _uiState.value = _uiState.value.copy(saveSuccess = false)
     }

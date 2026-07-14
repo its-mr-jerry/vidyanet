@@ -30,11 +30,25 @@ import com.kastack.vidyanet.theme.*
 import org.koin.compose.viewmodel.koinViewModel
 import kotlin.time.Duration.Companion.milliseconds
 
+import com.kastack.vidyanet.commonUi.components.AppTextField
+import com.kastack.vidyanet.validators.ValidationSchema
+
 @Composable
 fun RolesPermissions(
     viewModel: RolesPermissionsViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var showAddRoleDialog by remember { mutableStateOf(false) }
+
+    if (showAddRoleDialog) {
+        AddRoleDialog(
+            onDismiss = { showAddRoleDialog = false },
+            onAdd = { name, code, desc ->
+                viewModel.createRole(name, code, desc)
+                showAddRoleDialog = false
+            }
+        )
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         // Header
@@ -47,6 +61,11 @@ fun RolesPermissions(
                 icon = Icons.Default.Save,
                 onClick = viewModel::savePermissions,
                 isLoading = uiState.isSaving
+            ),
+            secondaryAction = HeaderAction(
+                label = "Add Role",
+                icon = Icons.Default.Add,
+                onClick = { showAddRoleDialog = true }
             )
         )
 
@@ -169,6 +188,72 @@ fun RolesPermissions(
     }
 }
 
+@Composable
+private fun AddRoleDialog(
+    onDismiss: () -> Unit,
+    onAdd: (name: String, code: String, desc: String) -> Unit
+) {
+    var name by remember { mutableStateOf("") }
+    var code by remember { mutableStateOf("") }
+    var desc by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { AppText("Add Custom Role", fontWeight = FontWeight.Bold) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Column {
+                    AppText("Role Name", style = MaterialTheme.typography.labelMedium)
+                    OutlinedTextField(
+                        value = name,
+                        onValueChange = {
+                            name = it
+                            if (code.isEmpty()) code = it.replace(" ", "_").uppercase()
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                }
+
+                Column {
+                    AppText("Role Code", style = MaterialTheme.typography.labelMedium)
+                    OutlinedTextField(
+                        value = code,
+                        onValueChange = { code = it.uppercase() },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        placeholder = { Text("e.g. CUSTOM_STAFF") }
+                    )
+                }
+
+                Column {
+                    AppText("Description", style = MaterialTheme.typography.labelMedium)
+                    OutlinedTextField(
+                        value = desc,
+                        onValueChange = { desc = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        minLines = 2
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { if (name.isNotBlank() && code.isNotBlank()) onAdd(name, code, desc) },
+                enabled = name.isNotBlank() && code.isNotBlank()
+            ) {
+                AppText("Create Role")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                AppText("Cancel")
+            }
+        }
+    )
+}
+
 
 @Composable
 private fun RoleCard(
@@ -245,6 +330,7 @@ private fun RoleCard(
         }
     }
 }
+
 
 @Composable
 private fun PermissionMatrix(
@@ -367,6 +453,7 @@ private fun PermissionMatrix(
     }
 }
 
+
 @Composable
 private fun PermissionMobileCard(
     permission: ModulePermissionDto,
@@ -429,6 +516,7 @@ private fun PermissionMobileCard(
         }
     }
 }
+
 
 @Composable
 private fun PermissionRow(

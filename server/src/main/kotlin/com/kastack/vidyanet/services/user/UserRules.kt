@@ -1,6 +1,7 @@
 package com.kastack.vidyanet.services.user
 
 import com.kastack.vidyanet.models.user.UserType
+import com.kastack.vidyanet.permissions.PermissionSchema
 import com.kastack.vidyanet.plugins.authorize
 import io.ktor.server.application.*
 import io.ktor.server.routing.*
@@ -16,26 +17,33 @@ abstract class UserRules {
     abstract suspend fun updateFcmToken(call: ApplicationCall)
 
     fun Route.UserRoutes() {
-        authorize(UserType.PLATFORM_OWNER, UserType.SCHOOL_USER) {
+        authorize(UserType.PLATFORM_OWNER, UserType.SCHOOL_USER, permission = PermissionSchema.Settings.VIEW) {
             get("/stats") {
                 getUserStats(call)
             }
             get {
                 getAllUsers(call)
             }
-            post {
-                createUser(call)
-            }
             get("/{userId}") {
                 getUserById(call)
+            }
+        }
+
+        authorize(UserType.PLATFORM_OWNER, UserType.SCHOOL_USER, permission = PermissionSchema.Settings.EDIT) {
+            post {
+                createUser(call)
             }
             put("/{userId}") {
                 updateUser(call)
             }
+        }
+
+        authorize(UserType.PLATFORM_OWNER, UserType.SCHOOL_USER, permission = PermissionSchema.Settings.DELETE) {
             delete("/{userId}") {
                 deleteUser(call)
             }
         }
+
         get("/me") {
             getMe(call)
         }

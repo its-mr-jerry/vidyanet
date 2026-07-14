@@ -5,29 +5,34 @@ import com.kastack.vidyanet.models.role.*
 import com.kastack.vidyanet.database.toKotlin
 import kotlin.time.Instant
 
-fun UserEntity.toDto() = UserDto(
-    id = id.value,
-    phone = phone,
-    fullName = fullName,
-    email = email,
-    userType = userType,
-    schoolId = schoolId?.value,
-    status = status,
-    isPhoneVerified = isPhoneVerified,
-    fcmToken = fcmToken,
-    roles = roles.map { it.roleName },
-    permissions = roles.flatMap { it.permissions }.map { "${it.moduleName}_${it.action}" }.distinct(),
-    createdAt = createdAt.toKotlin(),
-    updatedAt = updatedAt.toKotlin(),
-    lastLoginAt = lastLoginAt?.toKotlin(),
-    deletedAt = deletedAt?.toKotlin()
-)
+fun UserEntity.toDto(): UserDto {
+    val userRoles = roles.toList()
+    return UserDto(
+        id = id.value,
+        phone = phone,
+        fullName = fullName,
+        email = email,
+        userType = userType,
+        schoolId = schoolId?.value,
+        status = status,
+        isPhoneVerified = isPhoneVerified,
+        fcmToken = fcmToken,
+        roles = userRoles.map { it.roleName },
+        roleIds = userRoles.map { it.id.value },
+        permissions = userRoles.flatMap { it.permissions.toList() }.map { "${it.moduleName}_${it.action}" }.distinct(),
+        createdAt = createdAt.toKotlin(),
+        updatedAt = updatedAt.toKotlin(),
+        lastLoginAt = lastLoginAt?.toKotlin(),
+        deletedAt = deletedAt?.toKotlin()
+    )
+}
 
 fun RoleEntity.toDto() = RoleDto(
     id = id.value,
     roleCode = roleCode,
     roleName = roleName,
     description = description,
+    schoolId = schoolId?.value,
     isSystemRole = isSystemRole,
     createdAt = createdAt.toKotlin(),
     updatedAt = updatedAt.toKotlin()
@@ -36,7 +41,8 @@ fun RoleEntity.toDto() = RoleDto(
 fun PermissionEntity.toDto() = PermissionAction.valueOf(action)
 
 fun RoleEntity.toPermissionsDto(): RolePermissionsDto {
-    val groupedPermissions = permissions.groupBy { it.moduleName }
+    val permissionList = permissions.toList()
+    val groupedPermissions = permissionList.groupBy { it.moduleName }
     val modulePermissions = groupedPermissions.map { (moduleName, permissions) ->
         ModulePermissionDto(
             moduleName = moduleName,
@@ -65,7 +71,7 @@ fun AuditLogEntity.toDto() = com.kastack.vidyanet.models.audit.AuditLogDto(
     timestamp = timestamp.toKotlin(),
     userId = userId?.value,
     userName = user?.fullName,
-    userRole = user?.roles?.firstOrNull()?.roleName, // Simplified
+    userRole = user?.roles?.toList()?.firstOrNull()?.roleName, // Materialize roles list
     action = action,
     actionDetails = actionDetails,
     module = module,

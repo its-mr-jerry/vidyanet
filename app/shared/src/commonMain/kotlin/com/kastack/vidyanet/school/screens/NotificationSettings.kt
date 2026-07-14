@@ -115,7 +115,9 @@ fun NotificationSettings(
 
                             // Right Column: Template Preview
                             Column(
-                                modifier = Modifier.weight(0.35f),
+                                modifier = Modifier
+                                    .weight(0.35f)
+                                    .verticalScroll(rememberScrollState()),
                                 verticalArrangement = Arrangement.spacedBy(24.dp)
                             ) {
                                 TemplatePreviewSection(

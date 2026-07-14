@@ -80,7 +80,7 @@ fun AppTextArea(
     error: String? = null
 ) {
     val minHeight = (24 * rows + 32).dp
-    Column(modifier = modifier) {
+    Column(modifier = modifier.fillMaxWidth()) {
         AppText(
             text = schema.label,
             style = MaterialTheme.typography.labelMedium,

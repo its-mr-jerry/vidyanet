@@ -1,6 +1,7 @@
 package com.kastack.vidyanet.services.role
 
 import com.kastack.vidyanet.models.user.UserType
+import com.kastack.vidyanet.permissions.PermissionSchema
 import com.kastack.vidyanet.plugins.authorize
 import io.ktor.server.application.*
 import io.ktor.server.routing.*
@@ -20,29 +21,39 @@ abstract class RoleRules {
 
     fun Route.roleRoutes() {
         route("/roles") {
-            authorize(UserType.PLATFORM_OWNER, UserType.SCHOOL_USER) {
+            authorize(UserType.PLATFORM_OWNER, UserType.SCHOOL_USER, permission = PermissionSchema.Settings.VIEW) {
                 get { getAllRoles(call) }
                 get("/{id}") { getRoleById(call) }
-                post { createRole(call) }
-                put("/{id}") { updateRole(call) }
-                delete("/{id}") { deleteRole(call) }
                 
                 route("/{id}/permissions") {
                     get { getRolePermissions(call) }
+                }
+            }
+
+            authorize(UserType.PLATFORM_OWNER, UserType.SCHOOL_USER, permission = PermissionSchema.Settings.EDIT) {
+                post { createRole(call) }
+                put("/{id}") { updateRole(call) }
+                route("/{id}/permissions") {
                     put { updateRolePermissions(call) }
                 }
             }
+
+            authorize(UserType.PLATFORM_OWNER, UserType.SCHOOL_USER, permission = PermissionSchema.Settings.DELETE) {
+                delete("/{id}") { deleteRole(call) }
+            }
         }
         route("/permissions") {
-            authorize(UserType.PLATFORM_OWNER, UserType.SCHOOL_USER) {
+            authorize(UserType.PLATFORM_OWNER, UserType.SCHOOL_USER, permission = PermissionSchema.Settings.VIEW) {
                 get { getAllPermissions(call) }
             }
         }
         route("/user-roles") {
-            authorize(UserType.PLATFORM_OWNER, UserType.SCHOOL_USER) {
+            authorize(UserType.PLATFORM_OWNER, UserType.SCHOOL_USER, permission = PermissionSchema.Settings.VIEW) {
+                get("/{userId}") { getUserRoles(call) }
+            }
+            authorize(UserType.PLATFORM_OWNER, UserType.SCHOOL_USER, permission = PermissionSchema.Settings.EDIT) {
                 post("/assign") { assignRole(call) }
                 delete("/revoke") { revokeRole(call) }
-                get("/{userId}") { getUserRoles(call) }
             }
         }
     }

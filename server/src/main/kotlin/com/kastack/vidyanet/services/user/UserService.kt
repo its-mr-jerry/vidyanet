@@ -117,44 +117,37 @@ class UserService {
         )
     }
 
-    fun getUser(id: Long): UserDto {
-        val user = transaction {
-            UserEntity.findById(id)
-        } ?: throw UnauthorizedException("User not found")
-
-        return user.toDto()
+    fun getUser(id: Long): UserDto = transaction {
+        val user = UserEntity.findById(id) ?: throw UnauthorizedException("User not found")
+        user.toDto()
     }
 
-    fun updateUser(id: Long, request: UpdateUserRequest): UserDto {
-        val user = transaction {
-            val userEntity = UserEntity.findById(id) ?: return@transaction null
-            userEntity.apply {
-                request.fullName?.let { fullName = it }
-                request.email?.let { email = it }
-                request.userType?.let { userType = it }
-                request.status?.let { status = it }
-                request.schoolId?.let { 
-                    schoolId = EntityID(it, SchoolsTable)
-                }
-                request.fcmToken?.let { fcmToken = it }
-                updatedAt = StdlibClock.System.now().toKotlinx()
+    fun updateUser(id: Long, request: UpdateUserRequest): UserDto = transaction {
+        val userEntity = UserEntity.findById(id) ?: throw UnauthorizedException("User not found")
+        userEntity.apply {
+            request.fullName?.let { fullName = it }
+            request.email?.let { email = it }
+            request.userType?.let { userType = it }
+            request.status?.let { status = it }
+            request.schoolId?.let { 
+                schoolId = EntityID(it, SchoolsTable)
             }
-            
-            request.roleIds?.let { rids ->
-                // Simple role replacement: delete old, add new
-                UserRoleAssignmentsTable.deleteWhere { userId eq id }
-                rids.forEach { rid ->
-                    UserRoleAssignmentEntity.new {
-                        userId = EntityID(id, UsersTable)
-                        roleId = EntityID(rid, RolesTable)
-                        assignedAt = StdlibClock.System.now().toKotlinx()
-                    }
+            request.fcmToken?.let { fcmToken = it }
+            updatedAt = StdlibClock.System.now().toKotlinx()
+        }
+        
+        request.roleIds?.let { rids ->
+            // Simple role replacement: delete old, add new
+            UserRoleAssignmentsTable.deleteWhere { UserRoleAssignmentsTable.userId eq id }
+            rids.forEach { rid ->
+                UserRoleAssignmentEntity.new {
+                    userId = EntityID(id, UsersTable)
+                    roleId = EntityID(rid, RolesTable)
+                    assignedAt = StdlibClock.System.now().toKotlinx()
                 }
             }
-            userEntity
-        } ?: throw UnauthorizedException("User not found")
-
-        return user.toDto()
+        }
+        userEntity.toDto()
     }
 
     fun deleteUser(id: Long) {

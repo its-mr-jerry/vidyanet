@@ -12,6 +12,7 @@ class RoleEntity(id: EntityID<Long>) : LongEntity(id) {
     var roleCode by RolesTable.roleCode
     var roleName by RolesTable.roleName
     var description by RolesTable.description
+    var schoolId by RolesTable.schoolId
     var isSystemRole by RolesTable.isSystemRole
     var createdAt by RolesTable.createdAt
     var updatedAt by RolesTable.updatedAt

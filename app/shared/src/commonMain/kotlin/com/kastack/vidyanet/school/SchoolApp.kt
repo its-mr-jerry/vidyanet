@@ -25,6 +25,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kastack.vidyanet.commonUi.components.AppText
 import com.kastack.vidyanet.core.GlobalStore
+import com.kastack.vidyanet.models.role.PermissionAction
+import com.kastack.vidyanet.permissions.PermissionSchema
 import com.kastack.vidyanet.school.viewModels.SchoolAppViewModel
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
@@ -153,7 +155,7 @@ private fun SidebarContent(
     onLogout: () -> Unit,
     schoolName: String,
     uiState: com.kastack.vidyanet.school.viewModels.SchoolAppUiState,
-    hasPermission: (String, String) -> Boolean
+    hasPermission: (String, PermissionAction) -> Boolean
 ) {
     var expandedCategory by remember { mutableStateOf<String?>(null) }
 
@@ -210,7 +212,7 @@ private fun SidebarContent(
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             // Dashboard
-            if (hasPermission("DASHBOARD", "VIEW")) {
+            if (hasPermission(PermissionSchema.Dashboard.MODULE, PermissionAction.VIEW)) {
                 ExpandableSidebarItem(
                     label = "Dashboard",
                     icon = Icons.Default.Dashboard,
@@ -231,7 +233,7 @@ private fun SidebarContent(
             }
 
             // Admissions
-            if (hasPermission("ADMISSIONS", "VIEW")) {
+            if (hasPermission(PermissionSchema.Admissions.MODULE, PermissionAction.VIEW)) {
                 ExpandableSidebarItem(
                     label = "Admissions",
                     icon = Icons.Default.HowToReg,
@@ -253,7 +255,7 @@ private fun SidebarContent(
             }
 
             // Students
-            if (hasPermission("STUDENTS", "VIEW")) {
+            if (hasPermission(PermissionSchema.Students.MODULE, PermissionAction.VIEW)) {
                 ExpandableSidebarItem(
                     label = "Students",
                     icon = Icons.Default.Group,
@@ -276,7 +278,7 @@ private fun SidebarContent(
             }
 
             // Parents
-            if (hasPermission("PARENTS", "VIEW")) {
+            if (hasPermission(PermissionSchema.Parents.MODULE, PermissionAction.VIEW)) {
                 ExpandableSidebarItem(
                     label = "Parents",
                     icon = Icons.Default.FamilyRestroom,
@@ -296,7 +298,7 @@ private fun SidebarContent(
             }
 
             // Staff
-            if (hasPermission("STAFF", "VIEW")) {
+            if (hasPermission(PermissionSchema.Staff.MODULE, PermissionAction.VIEW)) {
                 ExpandableSidebarItem(
                     label = "Staff",
                     icon = Icons.Default.Badge,
@@ -326,7 +328,7 @@ private fun SidebarContent(
             }
 
             // Academics
-            if (hasPermission("ACADEMICS", "VIEW")) {
+            if (hasPermission(PermissionSchema.Academics.MODULE, PermissionAction.VIEW)) {
                 ExpandableSidebarItem(
                     label = "Academics",
                     icon = Icons.Default.AutoStories,
@@ -351,7 +353,7 @@ private fun SidebarContent(
             }
 
             // Attendance
-            if (hasPermission("ATTENDANCE", "VIEW")) {
+            if (hasPermission(PermissionSchema.Attendance.MODULE, PermissionAction.VIEW)) {
                 ExpandableSidebarItem(
                     label = "Attendance",
                     icon = Icons.AutoMirrored.Filled.FactCheck,
@@ -371,7 +373,7 @@ private fun SidebarContent(
             }
 
             // Timetable
-            if (hasPermission("TIMETABLE", "VIEW")) {
+            if (hasPermission(PermissionSchema.Timetable.MODULE, PermissionAction.VIEW)) {
                 ExpandableSidebarItem(
                     label = "Timetable",
                     icon = Icons.AutoMirrored.Filled.EventNote,
@@ -391,7 +393,7 @@ private fun SidebarContent(
             }
 
             // Examinations
-            if (hasPermission("EXAMINATIONS", "VIEW")) {
+            if (hasPermission(PermissionSchema.Examinations.MODULE, PermissionAction.VIEW)) {
                 ExpandableSidebarItem(
                     label = "Examinations",
                     icon = Icons.Default.Quiz,
@@ -414,7 +416,7 @@ private fun SidebarContent(
             }
 
             // Finance
-            if (hasPermission("FINANCE", "VIEW")) {
+            if (hasPermission(PermissionSchema.Finance.MODULE, PermissionAction.VIEW)) {
                 ExpandableSidebarItem(
                     label = "Finance",
                     icon = Icons.Default.Payments,
@@ -450,7 +452,7 @@ private fun SidebarContent(
             }
 
             // Library
-            if (hasPermission("LIBRARY", "VIEW")) {
+            if (hasPermission(PermissionSchema.Library.MODULE, PermissionAction.VIEW)) {
                 ExpandableSidebarItem(
                     label = "Library",
                     icon = Icons.Default.LocalLibrary,
@@ -472,7 +474,7 @@ private fun SidebarContent(
             }
 
             // Transport
-            if (hasPermission("TRANSPORT", "VIEW")) {
+            if (hasPermission(PermissionSchema.Transport.MODULE, PermissionAction.VIEW)) {
                 ExpandableSidebarItem(
                     label = "Transport",
                     icon = Icons.Default.DirectionsBus,
@@ -494,7 +496,7 @@ private fun SidebarContent(
             }
 
             // Inventory
-            if (hasPermission("INVENTORY", "VIEW")) {
+            if (hasPermission(PermissionSchema.Inventory.MODULE, PermissionAction.VIEW)) {
                 ExpandableSidebarItem(
                     label = "Inventory",
                     icon = Icons.Default.Inventory,
@@ -516,7 +518,7 @@ private fun SidebarContent(
             }
 
             // Hostel
-            if (hasPermission("HOSTEL", "VIEW")) {
+            if (hasPermission(PermissionSchema.Hostel.MODULE, PermissionAction.VIEW)) {
                 ExpandableSidebarItem(
                     label = "Hostel",
                     icon = Icons.Default.Hotel,
@@ -536,7 +538,7 @@ private fun SidebarContent(
             }
 
             // Sports
-            if (hasPermission("SPORTS", "VIEW")) {
+            if (hasPermission(PermissionSchema.Sports.MODULE, PermissionAction.VIEW)) {
                 ExpandableSidebarItem(
                     label = "Sports",
                     icon = Icons.Default.SportsBasketball,
@@ -555,7 +557,7 @@ private fun SidebarContent(
             }
 
             // Communication
-            if (hasPermission("COMMUNICATION", "VIEW")) {
+            if (hasPermission(PermissionSchema.Communication.MODULE, PermissionAction.VIEW)) {
                 ExpandableSidebarItem(
                     label = "Communication",
                     icon = Icons.Default.Campaign,
@@ -578,7 +580,7 @@ private fun SidebarContent(
             }
 
             // Reports
-            if (hasPermission("REPORTS", "VIEW")) {
+            if (hasPermission(PermissionSchema.Reports.MODULE, PermissionAction.VIEW)) {
                 ExpandableSidebarItem(
                     label = "Reports",
                     icon = Icons.Default.Description,
@@ -603,7 +605,7 @@ private fun SidebarContent(
             }
 
             // Settings
-            if (hasPermission("SETTINGS", "VIEW")) {
+            if (hasPermission(PermissionSchema.Settings.MODULE, PermissionAction.VIEW)) {
                 ExpandableSidebarItem(
                     label = "Settings",
                     icon = Icons.Default.Settings,

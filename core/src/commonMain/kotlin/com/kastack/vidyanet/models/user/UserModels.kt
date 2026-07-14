@@ -15,6 +15,7 @@ data class UserDto(
     val isPhoneVerified: Boolean,
     val fcmToken: String? = null,
     val roles: List<String> = emptyList(),
+    val roleIds: List<Long> = emptyList(),
     val permissions: List<String> = emptyList(), // Format: MODULE_ACTION
     val createdAt: Instant,
     val updatedAt: Instant,

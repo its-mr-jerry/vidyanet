@@ -1,6 +1,7 @@
 package com.kastack.vidyanet.services.school
 
 import com.kastack.vidyanet.models.user.UserType
+import com.kastack.vidyanet.permissions.PermissionSchema
 import com.kastack.vidyanet.plugins.authorize
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.routing.*
@@ -26,10 +27,12 @@ abstract class SchoolRules {
                 }
             }
 
-            authorize(UserType.PLATFORM_OWNER, UserType.SCHOOL_USER) {
+            authorize(UserType.PLATFORM_OWNER, UserType.SCHOOL_USER, permission = PermissionSchema.Settings.VIEW) {
                 get("/{schoolId}") {
                     getSchool(call)
                 }
+            }
+            authorize(UserType.PLATFORM_OWNER, UserType.SCHOOL_USER, permission = PermissionSchema.Settings.EDIT) {
                 put("/{schoolId}") {
                     updateSchool(call)
                 }

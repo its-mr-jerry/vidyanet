@@ -9,6 +9,7 @@ data class RoleDto(
     val roleCode: String,
     val roleName: String,
     val description: String? = null,
+    val schoolId: Long? = null,
     val isSystemRole: Boolean = true,
     val createdAt: Instant,
     val updatedAt: Instant
@@ -30,6 +31,7 @@ data class CreateRoleRequest(
     val roleCode: String,
     val roleName: String,
     val description: String? = null,
+    val schoolId: Long? = null,
     val isSystemRole: Boolean = false
 )
 

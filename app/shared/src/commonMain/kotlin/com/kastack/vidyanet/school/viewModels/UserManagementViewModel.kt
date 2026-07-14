@@ -9,6 +9,7 @@ import com.kastack.vidyanet.data.repositories.RoleRepository
 import com.kastack.vidyanet.data.repositories.UserRepository
 import com.kastack.vidyanet.models.user.*
 import com.kastack.vidyanet.models.role.RoleDto
+import com.kastack.vidyanet.permissions.PermissionSchema
 import com.kastack.vidyanet.validators.UserValidator
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,6 +23,7 @@ data class UserUiModel(
     val email: String,
     val phone: String,
     val role: String,
+    val roleIds: List<Long>,
     val lastLogin: String,
     val status: UserStatus,
     val avatarUrl: String? = null
@@ -40,7 +42,8 @@ data class UserManagementUiState(
     val rowsPerPage: Int = 10,
     val searchQuery: String = "",
     val selectedRoleId: Long? = null,
-    val selectedStatus: UserStatus? = null
+    val selectedStatus: UserStatus? = null,
+    val editingUser: UserUiModel? = null
 )
 
 class UserManagementViewModel(
@@ -54,7 +57,7 @@ class UserManagementViewModel(
 
     fun init(schoolId: String) {
         currentSchoolId = schoolId
-        _uiState.value = _uiState.value.copy(canEdit = globalStore.hasPermission("STAFF", "EDIT"))
+        _uiState.value = _uiState.value.copy(canEdit = globalStore.hasPermission(PermissionSchema.Settings.MODULE, "EDIT"))
         loadData()
     }
 
@@ -103,6 +106,7 @@ class UserManagementViewModel(
         email = email ?: "",
         phone = phone,
         role = roles.joinToString(", "),
+        roleIds = roleIds,
         lastLogin = lastLoginAt?.toString() ?: "Never",
         status = status
     )
@@ -159,6 +163,29 @@ class UserManagementViewModel(
                 _uiState.value = _uiState.value.copy(isSaving = false, error = error.message)
             }
         }
+    }
+
+    fun updateUser(userId: Long, fullName: String, email: String, roleIds: List<Long>) {
+        if (!_uiState.value.canEdit) return
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isSaving = true, error = null)
+            val request = UpdateUserRequest(
+                fullName = fullName,
+                email = email,
+                roleIds = roleIds
+            )
+
+            userRepository.updateUser(userId, request).onSuccess {
+                _uiState.value = _uiState.value.copy(isSaving = false, saveSuccess = true, editingUser = null)
+                loadUsers()
+            }.onFailure { error ->
+                _uiState.value = _uiState.value.copy(isSaving = false, error = error.message)
+            }
+        }
+    }
+
+    fun setEditingUser(user: UserUiModel?) {
+        _uiState.value = _uiState.value.copy(editingUser = user)
     }
 
     fun updateUserStatus(user: UserUiModel, newStatus: UserStatus) {

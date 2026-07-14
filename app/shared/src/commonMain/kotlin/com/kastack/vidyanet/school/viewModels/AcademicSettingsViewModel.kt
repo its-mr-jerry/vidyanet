@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kastack.vidyanet.core.GlobalStore
 import com.kastack.vidyanet.data.repositories.SchoolRepository
+import com.kastack.vidyanet.permissions.PermissionSchema
 import com.kastack.vidyanet.models.schoolUser.AcademicSessionDto
 import com.kastack.vidyanet.models.schoolUser.AcademicSettingsDto
 import com.kastack.vidyanet.models.schoolUser.HolidayDto
@@ -36,7 +37,7 @@ class AcademicSettingsViewModel(
             _uiState.value = _uiState.value.copy(
                 isLoading = true, 
                 error = null,
-                canEdit = globalStore.hasPermission("ACADEMICS", "EDIT")
+                canEdit = globalStore.hasPermission(PermissionSchema.Settings.MODULE, "EDIT")
             )
             schoolRepository.getAcademicSettings(id)
                 .onSuccess { settings ->

@@ -14,12 +14,29 @@ import kotlin.time.Clock
 
 class RoleService {
 
-    fun getAllRoles(): List<RoleDto> = transaction {
-        RoleEntity.all().orderBy(RolesTable.roleName to SortOrder.ASC).map { it.toDto() }
+    fun getAllRoles(schoolId: Long? = null): List<RoleDto> = transaction {
+        val query = RolesTable.selectAll()
+        
+        if (schoolId != null) {
+            query.andWhere { (RolesTable.schoolId eq schoolId) or (RolesTable.schoolId.isNull()) }
+        } else {
+            query.andWhere { RolesTable.schoolId.isNull() }
+        }
+
+        RoleEntity.wrapRows(query)
+            .orderBy(RolesTable.roleName to SortOrder.ASC)
+            .map { it.toDto() }
     }
 
-    fun getRoleById(id: Long): RoleDto? = transaction {
-        RoleEntity.findById(id)?.toDto()
+    fun getRoleById(id: Long, schoolId: Long? = null): RoleDto? = transaction {
+        val role = RoleEntity.findById(id) ?: return@transaction null
+        
+        // Security check: if schoolId is provided, role must either belong to that school or be a system role
+        if (schoolId != null && role.schoolId != null && role.schoolId?.value != schoolId) {
+            return@transaction null
+        }
+        
+        role.toDto()
     }
 
     fun createRole(request: CreateRoleRequest): RoleDto = transaction {
@@ -27,14 +44,20 @@ class RoleService {
             roleCode = request.roleCode
             roleName = request.roleName
             description = request.description
+            this.schoolId = request.schoolId?.let { EntityID(it, com.kastack.vidyanet.database.tables.SchoolsTable) }
             isSystemRole = request.isSystemRole
             createdAt = Clock.System.now().toKotlinx()
             updatedAt = Clock.System.now().toKotlinx()
         }.toDto()
     }
 
-    fun updateRole(id: Long, request: UpdateRoleRequest): RoleDto = transaction {
+    fun updateRole(id: Long, request: UpdateRoleRequest, schoolId: Long? = null): RoleDto = transaction {
         val role = RoleEntity.findById(id) ?: throw IllegalArgumentException("Role not found")
+        
+        if (schoolId != null && role.schoolId?.value != schoolId) {
+            throw IllegalArgumentException("Access denied to this role")
+        }
+
         if (role.isSystemRole) throw IllegalArgumentException("System roles cannot be updated")
 
         request.roleName?.let { role.roleName = it }
@@ -43,21 +66,37 @@ class RoleService {
         role.toDto()
     }
 
-    fun deleteRole(id: Long): Boolean = transaction {
+    fun deleteRole(id: Long, schoolId: Long? = null): Boolean = transaction {
         val role = RoleEntity.findById(id) ?: return@transaction false
+        
+        if (schoolId != null && role.schoolId?.value != schoolId) {
+            throw IllegalArgumentException("Access denied to this role")
+        }
+
         if (role.isSystemRole) throw IllegalArgumentException("System roles cannot be deleted")
         role.delete()
         true
     }
 
-    fun getRolePermissions(roleId: Long): RolePermissionsDto = transaction {
+    fun getRolePermissions(roleId: Long, schoolId: Long? = null): RolePermissionsDto = transaction {
         val role = RoleEntity.findById(roleId) ?: throw IllegalArgumentException("Role not found")
+        
+        if (schoolId != null && role.schoolId != null && role.schoolId?.value != schoolId) {
+            throw IllegalArgumentException("Access denied to this role")
+        }
+
         role.toPermissionsDto()
     }
 
-    fun updateRolePermissions(roleId: Long, request: RolePermissionsDto) = transaction {
+    fun updateRolePermissions(roleId: Long, request: RolePermissionsDto, schoolId: Long? = null) = transaction {
         val role = RoleEntity.findById(roleId) ?: throw IllegalArgumentException("Role not found")
         
+        if (schoolId != null && role.schoolId?.value != schoolId) {
+            throw IllegalArgumentException("Access denied to this role")
+        }
+
+        if (role.isSystemRole) throw IllegalArgumentException("System roles cannot be modified. Please create a custom role.")
+
         val newPermissions = request.permissions.flatMap { modulePerm ->
             modulePermissionsToEntities(modulePerm)
         }
